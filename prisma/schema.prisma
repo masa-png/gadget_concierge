@@ -1,0 +1,292 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ユーザープロフィール（auth.usersとの1対1関連）
+model UserProfile {
+  id                  String   @id @default(cuid())
+  userId              String   @unique // auth.usersのidと紐付け
+  name                String?
+  avatarUrl           String?
+  questionCount       Int      @default(0)
+  recommendationCount Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // リレーション
+  questionnaireSessions QuestionnaireSession[]
+  userHistories         UserHistory[]
+
+  @@map("user_profiles")
+}
+
+// カテゴリ（階層構造対応）
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  parentId    String? // 親カテゴリのID
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 自己参照リレーション
+  parentCategory Category?  @relation("CategorySubCategory", fields: [parentId], references: [id])
+  subCategories  Category[] @relation("CategorySubCategory")
+
+  // リレーション
+  productCategories ProductCategory[]
+  questions         Question[]
+  keyPoints         CategoryKeyPoint[]
+  commonQuestions   CategoryCommonQuestion[]
+  userHistories     UserHistory[]
+
+  @@map("categories")
+}
+
+// カテゴリキーポイント
+model CategoryKeyPoint {
+  id         String   @id @default(cuid())
+  categoryId String
+  point      String // キーポイントの内容
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // リレーション
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("category_key_points")
+}
+
+// カテゴリ一般的な質問
+model CategoryCommonQuestion {
+  id         String   @id @default(cuid())
+  categoryId String
+  question   String // 一般的な質問の内容
+  answer     String? // 質問に対する回答（任意）
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // リレーション
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("category_common_questions")
+}
+
+// 製品
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Decimal? @db.Decimal(10, 2)
+  rating      Decimal? @db.Decimal(3, 2) // 5.00まで
+  features    String // 製品の特徴
+  amazonUrl   String?
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // リレーション
+  productCategories ProductCategory[]
+  productTags       ProductTag[]
+  recommendations   Recommendation[]
+
+  @@map("products")
+}
+
+// 製品とカテゴリの中間テーブル（多対多）
+model ProductCategory {
+  id         String @id @default(cuid())
+  productId  String
+  categoryId String
+
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, categoryId])
+  @@map("product_categories")
+}
+
+// タグ（マスターテーブル）
+model Tag {
+  id          String   @id @default(cuid())
+  name        String   @unique // タグ名
+  description String? // タグの説明
+  color       String? // 表示色
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // リレーション
+  productTags ProductTag[]
+
+  @@map("tags")
+}
+
+// 製品とタグの中間テーブル（多対多）
+model ProductTag {
+  id        String   @id @default(cuid())
+  productId String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  // リレーション
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, tagId])
+  @@map("product_tags")
+}
+
+// 質問
+model Question {
+  id          String       @id @default(cuid())
+  categoryId  String
+  text        String
+  description String?
+  type        QuestionType // 質問タイプ
+  isRequired  Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // リレーション
+  category Category         @relation(fields: [categoryId], references: [id])
+  options  QuestionOption[]
+  answers  Answer[]
+
+  @@map("questions")
+}
+
+// 質問オプション
+model QuestionOption {
+  id          String   @id @default(cuid())
+  questionId  String
+  label       String // ユーザーに表示される文字
+  description String?
+  iconUrl     String?
+  value       String // システムが処理で使用する値
+  createdAt   DateTime @default(now())
+
+  // リレーション
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers  Answer[]
+
+  @@map("question_options")
+}
+
+// 診断セッション
+model QuestionnaireSession {
+  id          String        @id @default(cuid())
+  userId      String // auth.usersのidと紐付け
+  categoryId  String? // 診断対象のカテゴリ
+  status      SessionStatus @default(IN_PROGRESS)
+  startedAt   DateTime      @default(now())
+  completedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // リレーション
+  userProfile     UserProfile      @relation(fields: [userId], references: [userId])
+  answers         Answer[]
+  recommendations Recommendation[]
+  userHistories   UserHistory[]
+
+  @@map("questionnaire_sessions")
+}
+
+// 回答
+model Answer {
+  id                     String   @id @default(cuid())
+  questionnaireSessionId String
+  questionId             String
+  questionOptionId       String? // 選択肢回答の場合
+  rangeValue             Int? // 範囲回答の場合
+  textValue              String? // テキスト回答の場合
+  createdAt              DateTime @default(now())
+
+  // リレーション
+  session  QuestionnaireSession @relation(fields: [questionnaireSessionId], references: [id], onDelete: Cascade)
+  question Question             @relation(fields: [questionId], references: [id])
+  option   QuestionOption?      @relation(fields: [questionOptionId], references: [id])
+
+  @@unique([questionnaireSessionId, questionId])
+  @@map("answers")
+}
+
+// レコメンデーション
+model Recommendation {
+  id                     String   @id @default(cuid())
+  questionnaireSessionId String
+  productId              String
+  rank                   Int // ランキング順位
+  score                  Decimal  @db.Decimal(5, 2) // スコア
+  reason                 String // レコメンデーション理由
+  createdAt              DateTime @default(now())
+
+  // リレーション
+  session QuestionnaireSession @relation(fields: [questionnaireSessionId], references: [id], onDelete: Cascade)
+  product Product              @relation(fields: [productId], references: [id])
+
+  @@unique([questionnaireSessionId, productId])
+  @@map("recommendations")
+}
+
+// ユーザー履歴
+model UserHistory {
+  id          String      @id @default(cuid())
+  userId      String // auth.usersのidと紐付け
+  type        HistoryType
+  title       String
+  description String?
+  status      String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // 構造化されたフィールド（頻繁にクエリされる要素）
+  sessionId      String? // 診断セッションID
+  categoryId     String? // 対象カテゴリID
+  score          Decimal? @db.Decimal(5, 2) // スコア
+  completionRate Int? // 完了率（%）
+
+  // 詳細データ（JSON形式）
+  detailsJson Json? // 詳細データのみ
+
+  // リレーション
+  userProfile UserProfile           @relation(fields: [userId], references: [userId])
+  category    Category?             @relation(fields: [categoryId], references: [id])
+  session     QuestionnaireSession? @relation(fields: [sessionId], references: [id])
+
+  @@map("user_histories")
+}
+
+// Enums
+enum QuestionType {
+  SINGLE_CHOICE // 単一選択
+  MULTIPLE_CHOICE // 複数選択
+  RANGE // 範囲
+  TEXT // テキスト
+
+  @@map("question_type")
+}
+
+enum SessionStatus {
+  IN_PROGRESS // 進行中
+  COMPLETED // 完了
+  ABANDONED // 中断
+
+  @@map("session_status")
+}
+
+enum HistoryType {
+  QUESTIONNAIRE // 診断
+  RECOMMENDATION // レコメンデーション
+
+  @@map("history_type")
+}
