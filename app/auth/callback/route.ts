@@ -64,8 +64,23 @@ export async function GET(request: NextRequest) {
         console.error("Unexpected error during profile creation:", profileErr);
       }
 
-      // 成功時は指定されたページまたはホームにリダイレクト
-      return NextResponse.redirect(`${origin}${next}`);
+      // セッションがあればCookieにセットしてリダイレクト
+      const response = NextResponse.redirect(`${origin}${next}`);
+      if (data.session) {
+        response.cookies.set("sb-access-token", data.session.access_token, {
+          path: "/",
+          httpOnly: true,
+          secure: true,
+          sameSite: "lax",
+        });
+        response.cookies.set("sb-refresh-token", data.session.refresh_token, {
+          path: "/",
+          httpOnly: true,
+          secure: true,
+          sameSite: "lax",
+        });
+      }
+      return response;
     } else {
       console.error("Auth callback error (PKCE):", error);
       // エラー時は確認ページにエラーパラメータ付きでリダイレクト
