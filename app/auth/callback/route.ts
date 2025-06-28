@@ -1,7 +1,6 @@
 // app/auth/callback/route.ts
 import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
-import { cuid } from "zod/v4";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -13,7 +12,7 @@ export async function GET(request: NextRequest) {
   // OAuth認証フロー（従来の方式）のパラメータ
   const code = searchParams.get("code");
 
-  const next = searchParams.get("next") ?? "/";
+  const next = searchParams.get("next") ?? "/profile";
 
   if (token_hash && type) {
     // PKCE認証フロー（メール確認など）
@@ -26,43 +25,10 @@ export async function GET(request: NextRequest) {
 
     if (!error && data?.user) {
       console.log("Email verification successful for user:", data.user.id);
-
-      // メール確認成功後にプロフィールを作成
-      try {
-        // 既存のプロフィールをチェック
-        const { data: existingProfile } = await supabase
-          .from("user_profiles")
-          .select("userId")
-          .eq("userId", data.user.id) // UUIDをそのまま使用
-          .single();
-
-        if (!existingProfile) {
-          // プロフィールが存在しない場合は作成
-          const { error: profileError } = await supabase
-            .from("user_profiles")
-            .insert({
-              id: cuid(),
-              userId: data.user.id, // UUIDをそのまま使用
-              username: data.user.user_metadata?.name || data.user.email,
-              full_name: data.user.user_metadata?.name || data.user.email,
-            });
-
-          if (profileError) {
-            console.error(
-              "Profile creation error after email verification:",
-              profileError
-            );
-          } else {
-            console.log(
-              "Profile created successfully after email verification"
-            );
-          }
-        } else {
-          console.log("Profile already exists for user:", data.user.id);
-        }
-      } catch (profileErr) {
-        console.error("Unexpected error during profile creation:", profileErr);
-      }
+      console.log(
+        "Session data:",
+        data.session ? "Session exists" : "No session"
+      );
 
       // セッションがあればCookieにセットしてリダイレクト
       const response = NextResponse.redirect(`${origin}${next}`);
@@ -70,15 +36,22 @@ export async function GET(request: NextRequest) {
         response.cookies.set("sb-access-token", data.session.access_token, {
           path: "/",
           httpOnly: true,
-          secure: true,
+          secure: process.env.NODE_ENV === "production",
           sameSite: "lax",
+          maxAge: 60 * 60 * 24 * 7,
         });
         response.cookies.set("sb-refresh-token", data.session.refresh_token, {
           path: "/",
           httpOnly: true,
-          secure: true,
+          secure: process.env.NODE_ENV === "production",
           sameSite: "lax",
+          maxAge: 60 * 60 * 24 * 7,
         });
+
+        // デバッグ用：Cookieがセットされたか確認
+        console.log("Cookies set for user:", data.user.id);
+      } else {
+        console.log("No session data available for user:", data.user.id);
       }
       return response;
     } else {
@@ -96,41 +69,36 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data?.user) {
-      // OAuth成功後にもプロフィールを作成
-      try {
-        const { data: existingProfile } = await supabase
-          .from("user_profiles")
-          .select("userId")
-          .eq("userId", data.user.id) // UUIDをそのまま使用
-          .single();
+      console.log("OAuth authentication successful for user:", data.user.id);
+      console.log(
+        "Session data:",
+        data.session ? "Session exists" : "No session"
+      );
 
-        if (!existingProfile) {
-          const { error: profileError } = await supabase
-            .from("user_profiles")
-            .insert({
-              userId: data.user.id, // UUIDをそのまま使用
-              username: data.user.user_metadata?.name || data.user.email,
-              full_name:
-                data.user.user_metadata?.full_name ||
-                data.user.user_metadata?.name ||
-                data.user.email,
-            });
+      // セッションがあればCookieにセットしてリダイレクト
+      const response = NextResponse.redirect(`${origin}${next}`);
+      if (data.session) {
+        response.cookies.set("sb-access-token", data.session.access_token, {
+          path: "/",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          maxAge: 60 * 60 * 24 * 7,
+        });
+        response.cookies.set("sb-refresh-token", data.session.refresh_token, {
+          path: "/",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          maxAge: 60 * 60 * 24 * 7,
+        });
 
-          if (profileError) {
-            console.error("Profile creation error after OAuth:", profileError);
-          } else {
-            console.log("Profile created successfully after OAuth");
-          }
-        }
-      } catch (profileErr) {
-        console.error(
-          "Unexpected error during OAuth profile creation:",
-          profileErr
-        );
+        // デバッグ用：Cookieがセットされたか確認
+        console.log("Cookies set for user:", data.user.id);
+      } else {
+        console.log("No session data available for user:", data.user.id);
       }
-
-      // 成功時は指定されたページまたはホームにリダイレクト
-      return NextResponse.redirect(`${origin}${next}`);
+      return response;
     } else {
       console.error("Auth callback error (OAuth):", error);
       // エラー時は確認ページにエラーパラメータ付きでリダイレクト

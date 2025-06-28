@@ -1,9 +1,16 @@
 // lib/validations/auth.ts
 import { z } from "zod";
 
+export const loginServerSchema = z.object({
+  email: z.string().email("有効なメールアドレスを入力してください。"),
+  password: z.string().min(1, "パスワードを入力してください。"),
+});
+
+// クライアントサイド用のログインフォームスキーマ
 export const loginSchema = z.object({
   email: z.string().email("有効なメールアドレスを入力してください。"),
   password: z.string().min(1, "パスワードを入力してください。"),
+  rememberMe: z.boolean().optional(),
 });
 
 // 基本的なサインアップスキーマ（サーバーサイド用）
@@ -29,6 +36,7 @@ export const signupSchema = z
     path: ["confirmPassword"],
   });
 
+export type LoginServerData = z.infer<typeof loginServerSchema>;
 export type LoginFormData = z.infer<typeof loginSchema>;
-export type SignupFormData = z.infer<typeof signupSchema>;
 export type SignupServerData = z.infer<typeof signupServerSchema>;
+export type SignupFormData = z.infer<typeof signupSchema>;

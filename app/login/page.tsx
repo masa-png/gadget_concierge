@@ -4,6 +4,9 @@ import type React from "react";
 import { login } from "./actions";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { loginSchema, type LoginFormData } from "@/lib/validations/auth";
 import {
   Card,
   CardContent,
@@ -16,6 +19,44 @@ import Link from "next/link";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      rememberMe: false,
+    },
+  });
+
+  async function onSubmit(data: LoginFormData) {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // FormDataを作成してサーバーアクションに渡す
+      const formData = new FormData();
+      formData.append("email", data.email);
+      formData.append("password", data.password);
+
+      const result = await login(formData);
+
+      if (result?.error) {
+        setError(result.error);
+      }
+    } catch (err) {
+      setError("ログインに失敗しました。もう一度お試しください。");
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 px-4 py-8 flex items-center justify-center">
@@ -39,20 +80,31 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent className="space-y-6">
-            <form className="space-y-4">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <label htmlFor="email">メールアドレス</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="email"
-                    name="email"
                     type="email"
                     placeholder="your@email.com"
-                    className="pl-10"
-                    required
+                    className={`pl-10 ${errors.email ? "border-red-500" : ""}`}
+                    disabled={isLoading}
+                    {...register("email")}
                   />
                 </div>
+                {errors.email && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.email.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -61,16 +113,19 @@ export default function LoginPage() {
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="password"
-                    name="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="パスワードを入力"
-                    className="pl-10 pr-10"
-                    required
+                    className={`pl-10 pr-10 ${
+                      errors.password ? "border-red-500" : ""
+                    }`}
+                    disabled={isLoading}
+                    {...register("password")}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                    disabled={isLoading}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -79,11 +134,21 @@ export default function LoginPage() {
                     )}
                   </button>
                 </div>
+                {errors.password && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.password.message}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center justify-between">
                 <label className="flex items-center space-x-2">
-                  <input type="checkbox" className="rounded border-gray-300" />
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300"
+                    disabled={isLoading}
+                    {...register("rememberMe")}
+                  />
                   <span className="text-sm text-gray-600">
                     ログイン状態を保持
                   </span>
@@ -98,9 +163,10 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl py-2 text-lg font-semibold text-white shadow-md hover:brightness-110 transition"
+                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl py-2 text-lg font-semibold text-white shadow-md hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                ログイン
+                {isLoading ? "ログイン中..." : "ログイン"}
               </button>
             </form>
 
@@ -114,7 +180,8 @@ export default function LoginPage() {
             <div className="space-y-3">
               <button
                 type="button"
-                className="w-full flex items-center justify-center border border-gray-300 rounded-lg py-2 text-base font-semibold text-black bg-white hover:bg-gray-50 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isLoading}
+                className="w-full flex items-center justify-center border border-gray-300 rounded-lg py-2 text-base font-semibold text-black bg-white hover:bg-gray-50 transition focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg
                   className="mr-2 h-5 w-5"
