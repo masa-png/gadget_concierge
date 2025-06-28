@@ -11,16 +11,18 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ユーザープロフィール（auth.usersとの1対1関連）
+// ユーザープロフィール（auth.usersとの1対1関連 - 中心となるモデル）
+// auth.usersのidを外部参照として管理
 model UserProfile {
   id                  String   @id @default(cuid())
-  userId              String   @unique // auth.usersのidと紐付け
-  name                String?
-  avatarUrl           String?
+  userId              String   @unique @db.Uuid // auth.usersのidと紐付け（UUID型）
+  username            String?  @unique // ユーザー名（任意）
+  full_name           String?
+  avatar_url          String?
   questionCount       Int      @default(0)
   recommendationCount Int      @default(0)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   // リレーション
   questionnaireSessions QuestionnaireSession[]
@@ -35,8 +37,8 @@ model Category {
   name        String
   description String?
   parentId    String? // 親カテゴリのID
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   // 自己参照リレーション
   parentCategory Category?  @relation("CategorySubCategory", fields: [parentId], references: [id])
@@ -57,8 +59,8 @@ model CategoryKeyPoint {
   id         String   @id @default(cuid())
   categoryId String
   point      String // キーポイントの内容
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   // リレーション
   category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
@@ -72,8 +74,8 @@ model CategoryCommonQuestion {
   categoryId String
   question   String // 一般的な質問の内容
   answer     String? // 質問に対する回答（任意）
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   // リレーション
   category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
@@ -89,10 +91,10 @@ model Product {
   price       Decimal? @db.Decimal(10, 2)
   rating      Decimal? @db.Decimal(3, 2) // 5.00まで
   features    String // 製品の特徴
-  amazonUrl   String?
-  imageUrl    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  amazon_url  String?
+  image_url   String?
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   // リレーション
   productCategories ProductCategory[]
@@ -104,9 +106,11 @@ model Product {
 
 // 製品とカテゴリの中間テーブル（多対多）
 model ProductCategory {
-  id         String @id @default(cuid())
+  id         String   @id @default(cuid())
   productId  String
   categoryId String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
@@ -121,8 +125,8 @@ model Tag {
   name        String   @unique // タグ名
   description String? // タグの説明
   color       String? // 表示色
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   // リレーション
   productTags ProductTag[]
@@ -132,10 +136,11 @@ model Tag {
 
 // 製品とタグの中間テーブル（多対多）
 model ProductTag {
-  id        String   @id @default(cuid())
-  productId String
-  tagId     String
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  productId  String
+  tagId      String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   // リレーション
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -152,9 +157,9 @@ model Question {
   text        String
   description String?
   type        QuestionType // 質問タイプ
-  isRequired  Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  is_required Boolean      @default(true)
+  created_at  DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime     @default(now()) @updatedAt @db.Timestamptz(6)
 
   // リレーション
   category Category         @relation(fields: [categoryId], references: [id])
@@ -170,9 +175,10 @@ model QuestionOption {
   questionId  String
   label       String // ユーザーに表示される文字
   description String?
-  iconUrl     String?
+  icon_url    String?
   value       String // システムが処理で使用する値
-  createdAt   DateTime @default(now())
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   // リレーション
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
@@ -181,19 +187,19 @@ model QuestionOption {
   @@map("question_options")
 }
 
-// 診断セッション
+// 診断セッション（UserProfileと紐付け）
 model QuestionnaireSession {
-  id          String        @id @default(cuid())
-  userId      String // auth.usersのidと紐付け
-  categoryId  String? // 診断対象のカテゴリ
-  status      SessionStatus @default(IN_PROGRESS)
-  startedAt   DateTime      @default(now())
-  completedAt DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id            String        @id @default(cuid())
+  userProfileId String // UserProfileのidと紐付け
+  categoryId    String? // 診断対象のカテゴリ
+  status        SessionStatus @default(IN_PROGRESS)
+  started_at    DateTime      @default(now()) @db.Timestamptz(6)
+  completed_at  DateTime?     @db.Timestamptz(6)
+  created_at    DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime      @default(now()) @updatedAt @db.Timestamptz(6)
 
   // リレーション
-  userProfile     UserProfile      @relation(fields: [userId], references: [userId])
+  userProfile     UserProfile      @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
   answers         Answer[]
   recommendations Recommendation[]
   userHistories   UserHistory[]
@@ -207,9 +213,10 @@ model Answer {
   questionnaireSessionId String
   questionId             String
   questionOptionId       String? // 選択肢回答の場合
-  rangeValue             Int? // 範囲回答の場合
-  textValue              String? // テキスト回答の場合
-  createdAt              DateTime @default(now())
+  range_value            Int? // 範囲回答の場合
+  text_value             String? // テキスト回答の場合
+  created_at             DateTime @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   // リレーション
   session  QuestionnaireSession @relation(fields: [questionnaireSessionId], references: [id], onDelete: Cascade)
@@ -228,7 +235,8 @@ model Recommendation {
   rank                   Int // ランキング順位
   score                  Decimal  @db.Decimal(5, 2) // スコア
   reason                 String // レコメンデーション理由
-  createdAt              DateTime @default(now())
+  created_at             DateTime @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   // リレーション
   session QuestionnaireSession @relation(fields: [questionnaireSessionId], references: [id], onDelete: Cascade)
@@ -238,28 +246,28 @@ model Recommendation {
   @@map("recommendations")
 }
 
-// ユーザー履歴
+// ユーザー履歴（UserProfileと紐付け）
 model UserHistory {
-  id          String      @id @default(cuid())
-  userId      String // auth.usersのidと紐付け
-  type        HistoryType
-  title       String
-  description String?
-  status      String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id            String      @id @default(cuid())
+  userProfileId String // UserProfileのidと紐付け
+  type          HistoryType
+  title         String
+  description   String?
+  status        String?
+  created_at    DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime    @default(now()) @updatedAt @db.Timestamptz(6)
 
   // 構造化されたフィールド（頻繁にクエリされる要素）
-  sessionId      String? // 診断セッションID
-  categoryId     String? // 対象カテゴリID
-  score          Decimal? @db.Decimal(5, 2) // スコア
-  completionRate Int? // 完了率（%）
+  sessionId       String? // 診断セッションID
+  categoryId      String? // 対象カテゴリID
+  score           Decimal? @db.Decimal(5, 2) // スコア
+  completion_rate Int? // 完了率（%）
 
   // 詳細データ（JSON形式）
-  detailsJson Json? // 詳細データのみ
+  details_json Json? // 詳細データのみ
 
   // リレーション
-  userProfile UserProfile           @relation(fields: [userId], references: [userId])
+  userProfile UserProfile           @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
   category    Category?             @relation(fields: [categoryId], references: [id])
   session     QuestionnaireSession? @relation(fields: [sessionId], references: [id])
 
