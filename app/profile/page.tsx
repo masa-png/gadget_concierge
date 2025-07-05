@@ -121,14 +121,6 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-500">
-                      ユーザーID
-                    </label>
-                    <p className="mt-1 text-sm text-gray-900">
-                      {profile.userId}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500">
                       プロフィールID
                     </label>
                     <p className="mt-1 text-sm text-gray-900">{profile.id}</p>
@@ -151,29 +143,6 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </div>
-
-              <div className="border-b pb-4">
-                <h2 className="text-lg font-semibold text-gray-700 mb-2">
-                  認証情報
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500">
-                      メールアドレス
-                    </label>
-                    <p className="mt-1 text-sm text-gray-900">{user?.email}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500">
-                      認証プロバイダー
-                    </label>
-                    <p className="mt-1 text-sm text-gray-900">
-                      {user?.app_metadata?.provider || "email"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               <div>
                 <h2 className="text-lg font-semibold text-gray-700 mb-2">
                   作成日時
