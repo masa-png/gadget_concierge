@@ -19,8 +19,8 @@ model UserProfile {
   username            String?  @unique // ユーザー名（任意）
   full_name           String?
   avatar_url          String?
-  questionCount       Int      @default(0)
-  recommendationCount Int      @default(0)
+  questionCount       Int      @default(0) @db.Integer
+  recommendationCount Int      @default(0) @db.Integer
   created_at          DateTime @default(now()) @db.Timestamptz(6)
   updated_at          DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
@@ -28,14 +28,17 @@ model UserProfile {
   questionnaireSessions QuestionnaireSession[]
   userHistories         UserHistory[]
 
+  @@index([userId])
+  @@index([created_at])
+  @@index([username])
   @@map("user_profiles")
 }
 
 // カテゴリ（階層構造対応）
 model Category {
   id          String   @id @default(cuid())
-  name        String
-  description String?
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
   parentId    String? // 親カテゴリのID
   created_at  DateTime @default(now()) @db.Timestamptz(6)
   updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
@@ -51,6 +54,9 @@ model Category {
   commonQuestions   CategoryCommonQuestion[]
   userHistories     UserHistory[]
 
+  @@index([parentId])
+  @@index([name])
+  @@index([created_at])
   @@map("categories")
 }
 
@@ -204,6 +210,11 @@ model QuestionnaireSession {
   recommendations Recommendation[]
   userHistories   UserHistory[]
 
+  @@index([userProfileId, status])
+  @@index([categoryId])
+  @@index([status])
+  @@index([created_at])
+  @@index([completed_at])
   @@map("questionnaire_sessions")
 }
 
@@ -213,8 +224,8 @@ model Answer {
   questionnaireSessionId String
   questionId             String
   questionOptionId       String? // 選択肢回答の場合
-  range_value            Int? // 範囲回答の場合
-  text_value             String? // テキスト回答の場合
+  range_value            Int? @db.Integer // 範囲回答の場合 (0-100)
+  text_value             String? @db.Text // テキスト回答の場合
   created_at             DateTime @default(now()) @db.Timestamptz(6)
   updated_at             DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
@@ -224,6 +235,9 @@ model Answer {
   option   QuestionOption?      @relation(fields: [questionOptionId], references: [id])
 
   @@unique([questionnaireSessionId, questionId])
+  @@index([questionnaireSessionId])
+  @@index([questionId])
+  @@index([created_at])
   @@map("answers")
 }
 
@@ -232,9 +246,9 @@ model Recommendation {
   id                     String   @id @default(cuid())
   questionnaireSessionId String
   productId              String
-  rank                   Int // ランキング順位
-  score                  Decimal  @db.Decimal(5, 2) // スコア
-  reason                 String // レコメンデーション理由
+  rank                   Int      @db.Integer // ランキング順位 (1-10)
+  score                  Decimal  @db.Decimal(5, 2) // スコア (0.00-100.00)
+  reason                 String   @db.Text // レコメンデーション理由
   created_at             DateTime @default(now()) @db.Timestamptz(6)
   updated_at             DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
@@ -243,6 +257,10 @@ model Recommendation {
   product Product              @relation(fields: [productId], references: [id])
 
   @@unique([questionnaireSessionId, productId])
+  @@unique([questionnaireSessionId, rank]) // セッション内でランクが重複しないように
+  @@index([questionnaireSessionId, rank])
+  @@index([productId])
+  @@index([score])
   @@map("recommendations")
 }
 

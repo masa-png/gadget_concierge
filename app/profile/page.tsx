@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/utils/supabase/client";
+import React, { useEffect, useState, useCallback } from "react";
+import { useAuth } from "@/app/_components/providers/auth-provider";
+import { ProfileSkeleton } from "@/app/_components/ui/skeleton";
+import { ErrorMessage } from "@/app/_components/ui/form";
 
 interface Profile {
   id: string;
@@ -13,92 +15,102 @@ interface Profile {
 }
 
 export default function ProfilePage() {
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
 
-  // プロフィールがなければ作成
-  const createProfileIfNeeded = async () => {
+  // プロフィールを取得または作成
+  const fetchOrCreateProfile = useCallback(async () => {
     try {
+      // まずプロフィールを取得
+      const getResponse = await fetch("/api/profile");
+
+      if (getResponse.ok) {
+        const getData = await getResponse.json();
+        if (getData.data?.profile) {
+          setProfile(getData.data.profile);
+          // console.log("プロフィール取得成功", getData.data.profile);
+          return;
+        }
+      }
+
       // プロフィールが存在しない場合は作成
+      const generateUsername = (
+        name: string | undefined,
+        email: string | undefined
+      ) => {
+        const baseName = name || email?.split("@")[0] || "user";
+        return baseName.replace(/[^a-zA-Z0-9_-]/g, "").toLowerCase() || "user";
+      };
+
       const postResponse = await fetch("/api/profile", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username: user?.user_metadata?.name || user?.email || "ユーザー名",
-          full_name: user?.user_metadata?.name || user?.email || "フルネーム",
+          username: generateUsername(user?.user_metadata?.name, user?.email),
+          full_name:
+            user?.user_metadata?.full_name ||
+            user?.user_metadata?.name ||
+            user?.email ||
+            "フルネーム",
         }),
       });
 
       if (postResponse.ok) {
         const postData = await postResponse.json();
-        setProfile(postData.profile);
-        console.log("プロフィール作成成功", postData);
+        setProfile(postData.data?.profile);
+        // console.log("プロフィール作成成功", postData.data?.profile);
       } else {
         const errorData = await postResponse.json();
         setError(`プロフィール作成エラー: ${errorData.error}`);
       }
     } catch (error) {
-      console.error("プロフィール作成エラー:", error);
+      // console.error("プロフィール処理エラー:", error);
       setError("プロフィールの取得・作成中にエラーが発生しました");
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
-    const checkUserAndProfile = async () => {
+    const fetchProfile = async () => {
+      if (!isAuthenticated || !user) {
+        setError("認証されていません");
+        setLoading(false);
+        return;
+      }
+
       try {
-        const supabase = createClient();
-
-        // 現在のユーザーを取得 (auth.users)
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError || !user) {
-          setError("認証されていません");
-          setLoading(false);
-          return;
-        }
-
-        setUser(user);
-
         // プロフィールを取得・作成
-        await createProfileIfNeeded();
+        await fetchOrCreateProfile();
       } catch (error) {
-        console.error("ユーザー確認エラー:", error);
-        setError("ユーザー情報の取得中にエラーが発生しました");
+        console.error("プロフィール取得エラー:", error);
+        setError("プロフィール情報の取得中にエラーが発生しました");
         setLoading(false);
       }
     };
 
-    checkUserAndProfile();
-  }, []);
+    if (!authLoading) {
+      fetchProfile();
+    }
+  }, [user, isAuthenticated, authLoading, fetchOrCreateProfile]);
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">読み込み中...</p>
-        </div>
+      <div className="min-h-screen bg-gray-50 py-12">
+        <ProfileSkeleton />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            <p className="font-bold">エラー</p>
-            <p>{error}</p>
-          </div>
+      <div className="min-h-screen bg-gray-50 py-12 flex items-center justify-center">
+        <div className="max-w-md mx-auto px-4">
+          <ErrorMessage message={error} />
         </div>
       </div>
     );

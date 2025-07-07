@@ -10,7 +10,6 @@ export const loginServerSchema = z.object({
 export const loginSchema = z.object({
   email: z.string().email("有効なメールアドレスを入力してください。"),
   password: z.string().min(1, "パスワードを入力してください。"),
-  rememberMe: z.boolean().optional(),
 });
 
 // 基本的なサインアップスキーマ（サーバーサイド用）

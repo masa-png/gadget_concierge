@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!error && data?.user) {
-      console.log("Email verification successful for user:", data.user.id);
+      console.log("Email verification successful for user");
       console.log(
         "Session data:",
         data.session ? "Session exists" : "No session"
@@ -47,11 +47,8 @@ export async function GET(request: NextRequest) {
           sameSite: "lax",
           maxAge: 60 * 60 * 24 * 7,
         });
-
-        // デバッグ用：Cookieがセットされたか確認
-        console.log("Cookies set for user:", data.user.id);
       } else {
-        console.log("No session data available for user:", data.user.id);
+        console.log("No session data available for user");
       }
       return response;
     } else {
@@ -69,7 +66,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data?.user) {
-      console.log("OAuth authentication successful for user:", data.user.id);
+      console.log("OAuth authentication successful for user");
       console.log(
         "Session data:",
         data.session ? "Session exists" : "No session"
@@ -92,11 +89,8 @@ export async function GET(request: NextRequest) {
           sameSite: "lax",
           maxAge: 60 * 60 * 24 * 7,
         });
-
-        // デバッグ用：Cookieがセットされたか確認
-        console.log("Cookies set for user:", data.user.id);
       } else {
-        console.log("No session data available for user:", data.user.id);
+        console.log("No session data available for user");
       }
       return response;
     } else {

@@ -14,7 +14,7 @@ import { ArrowLeft, User, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signup } from "../login/actions";
+import { signup } from "@/lib/actions/auth";
 import { signupSchema, type SignupFormData } from "@/lib/validations/auth";
 
 export default function SignupPage() {
@@ -36,23 +36,13 @@ export default function SignupPage() {
     setServerError(null);
     setLoading(true);
 
-    console.log("Form submission data:", data); // デバッグ用
-
     try {
       const fd = new FormData();
       fd.append("email", data.email);
       fd.append("password", data.password);
       fd.append("name", data.name);
 
-      console.log("FormData contents:", {
-        email: fd.get("email"),
-        password: fd.get("password") ? "***" : null,
-        name: fd.get("name"),
-      }); // デバッグ用
-
       const result = await signup(fd);
-
-      console.log("Signup result:", result); // デバッグ用
 
       // エラーがある場合の処理
       if (result?.error) {
