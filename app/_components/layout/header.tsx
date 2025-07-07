@@ -24,8 +24,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/use-auth";
-import { createClient } from "@/utils/supabase/client";
+import { useAuth } from "@/app/_components/providers/auth-provider";
+import React, { useEffect } from "react";
 
 const navigationItems = [
   { href: "/", label: "ホーム" },
@@ -34,10 +34,16 @@ const navigationItems = [
   { href: "/contact", label: "お問い合わせ", icon: Phone },
 ];
 
-export function Header() {
+export const Header = React.memo(function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, isLoading, isAuthenticated, signOut, refreshAuth } = useAuth();
+
+  // 認証状態の変更を監視
+  useEffect(() => {
+    // ページロード時に認証状態を確認
+    refreshAuth();
+  }, [refreshAuth]);
 
   const isActive = (href: string) => {
     if (href === "/") {
@@ -48,15 +54,8 @@ export function Header() {
 
   const handleSignOut = async () => {
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signOut();
-
-      if (error) {
-        console.error("ログアウトエラー:", error);
-        return;
-      }
-
-      // ログアウト成功後にページをリダイレクト
+      await signOut();
+      await refreshAuth(); // 認証状態を更新
       router.push("/login");
       router.refresh();
     } catch (error) {
@@ -65,17 +64,16 @@ export function Header() {
   };
 
   // ユーザー情報を取得（表示用）
-  const getUserDisplayName = () => {
+  const getUserDisplayName = React.useMemo(() => {
     if (!user) return "";
     return (
       user.user_metadata?.full_name || user.email?.split("@")[0] || "ユーザー"
     );
-  };
+  }, [user]);
 
-  const getUserInitial = () => {
-    const name = getUserDisplayName();
-    return name.charAt(0).toUpperCase();
-  };
+  const getUserInitial = React.useMemo(() => {
+    return getUserDisplayName.charAt(0).toUpperCase();
+  }, [getUserDisplayName]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
@@ -118,10 +116,10 @@ export function Header() {
                       src={
                         user?.user_metadata?.avatar_url || "/placeholder.svg"
                       }
-                      alt={getUserDisplayName()}
+                      alt={getUserDisplayName}
                     />
                     <AvatarFallback className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-                      {getUserInitial()}
+                      {getUserInitial}
                     </AvatarFallback>
                   </Avatar>
                 </button>
@@ -129,7 +127,7 @@ export function Header() {
               <DropdownMenuContent className="w-56" align="end">
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{getUserDisplayName()}</p>
+                    <p className="font-medium">{getUserDisplayName}</p>
                     <p className="w-[200px] truncate text-sm text-muted-foreground">
                       {user?.email}
                     </p>
@@ -238,4 +236,4 @@ export function Header() {
       </div>
     </header>
   );
-}
+});

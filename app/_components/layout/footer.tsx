@@ -30,7 +30,7 @@ export function Footer() {
             今すぐガジェット診断を始めませんか？
           </h3>
           <p className="text-blue-100 mb-4">
-            あなたにぴったりのガジェットを見つけましょう！
+            探す時間を、楽しむ時間に。スマートなガジェット選びを!
           </p>
           <Link href="/questionnaire">
             <button className="inline-flex items-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg shadow-lg hover:bg-gray-50 hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 border border-transparent hover:border-blue-200">
@@ -55,7 +55,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-gray-300 mb-6 max-w-md">
-              探す時間を、楽しむ時間に。スマートなガジェット選びを。
+              「分からない」を「見つかる」に変える、あなただけのガジェット選びコンシェルジュ。
             </p>
           </div>
 

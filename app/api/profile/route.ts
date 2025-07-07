@@ -1,86 +1,182 @@
-import { createClient } from "@/utils/supabase/server";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  requireAuth,
+  validateRequest,
+  createErrorResponse,
+  createSuccessResponse,
+  rateLimit,
+  setSecurityHeaders,
+} from "@/lib/api/middleware";
+import {
+  CreateProfileSchema,
+  ErrorCodes,
+} from "@/lib/validations/api";
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-
-    // 現在のユーザーを取得
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    // デバッグ用ログ
-    console.log("GET /api/profile - User:", user?.id);
-    console.log("GET /api/profile - UserError:", userError);
-
-    if (userError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // レート制限チェック
+    const clientIP = request.ip || "unknown";
+    if (!rateLimit(clientIP, 100, 60000)) {
+      return createErrorResponse(
+        "リクエスト数が上限を超えました",
+        429,
+        ErrorCodes.RATE_LIMITED
+      );
     }
 
-    // Prismaでプロフィールを取得
+    // 認証チェック
+    const authResult = await requireAuth(request);
+    if (!authResult.success) {
+      return authResult.response;
+    }
+
+    const { user } = authResult;
+
+    // プロフィールを取得
     const profile = await prisma.userProfile.findUnique({
       where: {
         userId: user.id,
       },
+      select: {
+        id: true,
+        userId: true,
+        username: true,
+        full_name: true,
+        avatar_url: true,
+        questionCount: true,
+        recommendationCount: true,
+        created_at: true,
+        updated_at: true,
+      },
     });
 
-    return NextResponse.json({ profile });
+    const response = createSuccessResponse({ profile });
+    response.headers.set(
+      "Cache-Control",
+      "private, max-age=300, stale-while-revalidate=60"
+    );
+
+    return setSecurityHeaders(response);
   } catch (error) {
     console.error("Profile GET error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+    return createErrorResponse(
+      "プロフィールの取得中にエラーが発生しました",
+      500,
+      ErrorCodes.INTERNAL_ERROR
     );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-
-    // 現在のユーザーを取得
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    // デバッグ用ログ
-    console.log("POST /api/profile - User:", user?.id);
-    console.log("POST /api/profile - UserError:", userError);
-
-    if (userError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // レート制限チェック
+    const clientIP = request.ip || "unknown";
+    if (!rateLimit(clientIP, 30, 60000)) {
+      return createErrorResponse(
+        "リクエスト数が上限を超えました",
+        429,
+        ErrorCodes.RATE_LIMITED
+      );
     }
 
-    // リクエストボディからプロフィール情報を取得
-    const body = await request.json();
-    const { username, full_name } = body;
+    // 認証チェック
+    const authResult = await requireAuth(request);
+    if (!authResult.success) {
+      return authResult.response;
+    }
 
-    // Prismaでプロフィールをupsert（作成または更新）
+    const { user } = authResult;
+
+    // バリデーション
+    const validationResult = await validateRequest(CreateProfileSchema)(
+      request
+    );
+    if (!validationResult.success) {
+      return validationResult.response;
+    }
+
+    const { username, full_name, avatar_url } = validationResult.data;
+
+    // ユーザー名の重複チェック
+    if (username) {
+      const existingProfile = await prisma.userProfile.findFirst({
+        where: {
+          username,
+          NOT: {
+            userId: user.id,
+          },
+        },
+      });
+
+      if (existingProfile) {
+        return createErrorResponse(
+          "このユーザー名は既に使用されています",
+          409,
+          ErrorCodes.VALIDATION_ERROR
+        );
+      }
+    }
+
+    // プロフィールをupsert
     const profile = await prisma.userProfile.upsert({
       where: {
         userId: user.id,
       },
       update: {
-        username: username || user.user_metadata?.name || user.email,
-        full_name: full_name || user.user_metadata?.name || user.email,
+        username:
+          username ||
+          user.user_metadata?.name ||
+          user.email?.split("@")[0] ||
+          "user",
+        full_name:
+          full_name ||
+          user.user_metadata?.full_name ||
+          user.email ||
+          "名前未設定",
+        avatar_url: avatar_url || user.user_metadata?.avatar_url,
+        updated_at: new Date(),
       },
       create: {
         userId: user.id,
-        username: username || user.user_metadata?.name || user.email,
-        full_name: full_name || user.user_metadata?.name || user.email,
+        username:
+          username ||
+          user.user_metadata?.name ||
+          user.email?.split("@")[0] ||
+          "user",
+        full_name:
+          full_name ||
+          user.user_metadata?.full_name ||
+          user.email ||
+          "名前未設定",
+        avatar_url: avatar_url || user.user_metadata?.avatar_url,
+      },
+      select: {
+        id: true,
+        userId: true,
+        username: true,
+        full_name: true,
+        avatar_url: true,
+        questionCount: true,
+        recommendationCount: true,
+        created_at: true,
+        updated_at: true,
       },
     });
 
-    return NextResponse.json({ profile }, { status: 200 });
+    const response = createSuccessResponse(
+      { profile },
+      "プロフィールが正常に作成/更新されました",
+      201
+    );
+
+    return setSecurityHeaders(response);
   } catch (error) {
     console.error("Profile POST error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+    return createErrorResponse(
+      "プロフィールの作成/更新中にエラーが発生しました",
+      500,
+      ErrorCodes.INTERNAL_ERROR
     );
   }
 }
