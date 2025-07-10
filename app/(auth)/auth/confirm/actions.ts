@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { z } from "zod";
+import { createInitialProfile } from "@/lib/actions/profile";
 
 const emailSchema = z
   .string()
@@ -51,6 +52,41 @@ export async function resendConfirmationEmail(email: string) {
     console.error("Unexpected resend error:", err);
     return {
       error: "予期しないエラーが発生しました。もう一度お試しください。",
+    };
+  }
+}
+
+export async function createProfileAfterConfirmation() {
+  try {
+    const supabase = await createClient();
+
+    // 現在のユーザーを取得
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        error: "認証が必要です",
+      };
+    }
+
+    // 初期プロフィールを作成
+    const result = await createInitialProfile();
+
+    if (result.error) {
+      return result;
+    }
+
+    return {
+      success: true,
+      profile: result.profile,
+    };
+  } catch (error) {
+    console.error("プロフィール作成エラー:", error);
+    return {
+      error: "プロフィールの作成に失敗しました",
     };
   }
 }

@@ -15,27 +15,7 @@ export type ApiResponse<T = any> = {
   message?: string;
 };
 
-// プロフィール関連のスキーマ
-export const CreateProfileSchema = z.object({
-  username: z
-    .string()
-    .min(1, "ユーザー名は必須です")
-    .max(50, "ユーザー名は50文字以内で入力してください")
-    .regex(
-      /^[a-zA-Z0-9_-]+$/,
-      "ユーザー名は英数字とアンダースコア、ハイフンのみ使用できます"
-    ),
-  full_name: z
-    .string()
-    .min(1, "フルネームは必須です")
-    .max(100, "フルネームは100文字以内で入力してください"),
-  avatar_url: z.string().url("正しいURLを入力してください").optional(),
-});
-
-export const UpdateProfileSchema = CreateProfileSchema.partial();
-
-export type CreateProfileData = z.infer<typeof CreateProfileSchema>;
-export type UpdateProfileData = z.infer<typeof UpdateProfileSchema>;
+// プロフィール関連のスキーマは lib/validations/profile.ts に移動
 
 // ページネーション
 export const PaginationSchema = z.object({

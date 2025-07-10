@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuth } from "@/app/_components/providers/auth-provider";
+import { useAuth } from "@/app/_components/shared/providers/auth-provider";
 import React, { useEffect } from "react";
 
 const navigationItems = [

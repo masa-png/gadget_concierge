@@ -8,10 +8,8 @@ import {
   rateLimit,
   setSecurityHeaders,
 } from "@/lib/api/middleware";
-import {
-  CreateProfileSchema,
-  ErrorCodes,
-} from "@/lib/validations/api";
+import { CreateProfileSchema } from "@/lib/validations/profile";
+import { ErrorCodes } from "@/lib/validations/api";
 
 export async function GET(request: NextRequest) {
   try {
