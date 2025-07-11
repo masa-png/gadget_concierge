@@ -40,7 +40,7 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
       data: { profile: initialProfile },
       message: "プロフィールを取得しました",
     },
-    revalidateOnFocus: false,
+    revalidateOnFocus: true,
     revalidateOnReconnect: true,
     dedupingInterval: 30000,
     errorRetryCount: 3,
