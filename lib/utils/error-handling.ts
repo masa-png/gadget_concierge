@@ -19,10 +19,7 @@ export class AppError extends Error {
  * バリデーションエラークラス
  */
 export class ValidationError extends AppError {
-  constructor(
-    message: string,
-    public fieldErrors: Record<string, string[]>
-  ) {
+  constructor(message: string, public fieldErrors: Record<string, string[]>) {
     super(message, "VALIDATION_ERROR", 400);
     this.name = "ValidationError";
   }
@@ -57,7 +54,7 @@ export function formatZodError(error: z.ZodError): {
   fieldErrors: Record<string, string[]>;
 } {
   const fieldErrors: Record<string, string[]> = {};
-  
+
   error.errors.forEach((err) => {
     const path = err.path.join(".");
     if (!fieldErrors[path]) {
@@ -85,10 +82,10 @@ export function formatPrismaError(error: any): {
   if (error.code === "P2002") {
     const target = error.meta?.target;
     const field = Array.isArray(target) ? target[0] : target;
-    
+
     let message = "既に存在するデータです";
     let fieldErrors: Record<string, string[]> = {};
-    
+
     if (field === "username") {
       message = "このユーザー名は既に使用されています";
       fieldErrors = { username: ["このユーザー名は既に使用されています"] };
@@ -96,14 +93,14 @@ export function formatPrismaError(error: any): {
       message = "このメールアドレスは既に使用されています";
       fieldErrors = { email: ["このメールアドレスは既に使用されています"] };
     }
-    
+
     return {
       success: false,
       error: message,
       fieldErrors,
     };
   }
-  
+
   // 外部キー制約エラー
   if (error.code === "P2003") {
     return {
@@ -111,7 +108,7 @@ export function formatPrismaError(error: any): {
       error: "関連するデータが見つかりません",
     };
   }
-  
+
   // レコードが見つからない
   if (error.code === "P2025") {
     return {
@@ -119,7 +116,7 @@ export function formatPrismaError(error: any): {
       error: "データが見つかりません",
     };
   }
-  
+
   console.error("Prisma error:", error);
   return {
     success: false,
@@ -142,31 +139,31 @@ export function handleServerActionError(error: unknown): {
       fieldErrors: error.fieldErrors,
     };
   }
-  
+
   if (error instanceof AuthError) {
     return {
       success: false,
       error: error.message,
     };
   }
-  
+
   if (error instanceof AppError) {
     return {
       success: false,
       error: error.message,
     };
   }
-  
+
   // Zodエラー
   if (error instanceof z.ZodError) {
     return formatZodError(error);
   }
-  
+
   // Prismaエラー
   if (error && typeof error === "object" && "code" in error) {
     return formatPrismaError(error);
   }
-  
+
   // 一般的なエラー
   if (error instanceof Error) {
     console.error("Server Action error:", error);
@@ -175,7 +172,7 @@ export function handleServerActionError(error: unknown): {
       error: error.message || "予期しないエラーが発生しました",
     };
   }
-  
+
   console.error("Unknown error:", error);
   return {
     success: false,
@@ -198,21 +195,21 @@ export function handleApiError(error: unknown): {
       fieldErrors: error.fieldErrors,
     };
   }
-  
+
   if (error instanceof AuthError) {
     return {
       message: error.message,
       status: 401,
     };
   }
-  
+
   if (error instanceof AppError) {
     return {
       message: error.message,
       status: error.statusCode || 500,
     };
   }
-  
+
   // Zodエラー
   if (error instanceof z.ZodError) {
     const formatted = formatZodError(error);
@@ -222,7 +219,7 @@ export function handleApiError(error: unknown): {
       fieldErrors: formatted.fieldErrors,
     };
   }
-  
+
   // Prismaエラー
   if (error && typeof error === "object" && "code" in error) {
     const formatted = formatPrismaError(error);
@@ -232,7 +229,7 @@ export function handleApiError(error: unknown): {
       fieldErrors: formatted.fieldErrors,
     };
   }
-  
+
   // 一般的なエラー
   if (error instanceof Error) {
     console.error("API error:", error);
@@ -241,7 +238,7 @@ export function handleApiError(error: unknown): {
       status: 500,
     };
   }
-  
+
   console.error("Unknown API error:", error);
   return {
     message: "サーバーエラーが発生しました",
@@ -266,10 +263,19 @@ export function handleClientError(error: unknown): {
       isValidationError: false,
     };
   }
-  
+
   // Server Actionの結果
-  if (error && typeof error === "object" && "success" in error && !error.success) {
-    const actionError = error as { success: false; error: string; fieldErrors?: Record<string, string[]> };
+  if (
+    error &&
+    typeof error === "object" &&
+    "success" in error &&
+    !error.success
+  ) {
+    const actionError = error as {
+      success: false;
+      error: string;
+      fieldErrors?: Record<string, string[]>;
+    };
     return {
       message: actionError.error,
       isNetworkError: false,
@@ -277,7 +283,7 @@ export function handleClientError(error: unknown): {
       fieldErrors: actionError.fieldErrors,
     };
   }
-  
+
   // 一般的なエラー
   if (error instanceof Error) {
     return {
@@ -286,7 +292,7 @@ export function handleClientError(error: unknown): {
       isValidationError: false,
     };
   }
-  
+
   return {
     message: "予期しないエラーが発生しました",
     isNetworkError: false,
@@ -299,19 +305,20 @@ export function handleClientError(error: unknown): {
  */
 export function translateErrorMessage(message: string): string {
   const translations: Record<string, string> = {
-    "Required": "必須項目です",
+    Required: "必須項目です",
     "Invalid email": "正しいメールアドレスを入力してください",
-    "Password must be at least 8 characters": "パスワードは8文字以上で入力してください",
+    "Password must be at least 8 characters":
+      "パスワードは8文字以上で入力してください",
     "Username already exists": "このユーザー名は既に使用されています",
     "Email already exists": "このメールアドレスは既に使用されています",
     "User not found": "ユーザーが見つかりません",
     "Invalid credentials": "メールアドレスまたはパスワードが正しくありません",
-    "Unauthorized": "認証が必要です",
-    "Forbidden": "アクセスが拒否されました",
+    Unauthorized: "認証が必要です",
+    Forbidden: "アクセスが拒否されました",
     "Not found": "データが見つかりません",
     "Internal server error": "サーバーエラーが発生しました",
     "Network error": "ネットワークエラーが発生しました",
   };
-  
+
   return translations[message] || message;
 }
