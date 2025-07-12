@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { loginSchema, signupServerSchema } from "@/lib/validations/auth";
+import { createInitialProfile } from "@/lib/actions/profile";
 
 // エラーメッセージの日本語化
 function getLocalizedErrorMessage(error: any): string {
@@ -63,6 +64,14 @@ export async function login(formData: FormData) {
   } = await supabase.auth.getSession();
 
   if (session) {
+    // プロフィールが存在しない場合は自動作成
+    try {
+      await createInitialProfile();
+    } catch (profileError) {
+      console.error("プロフィール自動作成エラー:", profileError);
+      // プロフィール作成に失敗してもログインは成功とする
+    }
+
     revalidatePath("/", "layout");
     redirect("/");
   } else {

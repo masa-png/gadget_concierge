@@ -12,7 +12,7 @@ import {
 } from "@/app/_components/ui/form";
 import { Mail } from "lucide-react";
 import { login } from "@/lib/actions/auth";
-import { useAuth } from "@/app/_components/providers/auth-provider";
+import { useAuth } from "@/app/_components/shared/providers/auth-provider";
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);

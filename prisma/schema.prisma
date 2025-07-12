@@ -5,6 +5,23 @@ generator client {
   provider = "prisma-client-js"
 }
 
+generator zod {
+  provider                         = "zod-prisma-types"
+  output                          = "../lib/validations/generated"
+  createRelationValuesTypes       = true
+  createInputTypes                = false
+  createModelTypes                = true
+  addInputTypeValidation          = false
+  addIncludeType                  = false
+  addSelectType                   = false
+  validateWhereUniqueInput        = false
+  createOptionalDefaultValuesTypes = true
+  createPartialTypes              = true
+  useMultipleFiles                = false
+  writeBarrelFiles                = false
+  prismaClientPath                = "@prisma/client"
+}
+
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")

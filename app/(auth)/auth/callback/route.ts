@@ -1,6 +1,7 @@
 // app/auth/callback/route.ts
 import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { createProfileAfterConfirmation } from "../confirm/actions";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -29,6 +30,18 @@ export async function GET(request: NextRequest) {
         "Session data:",
         data.session ? "Session exists" : "No session"
       );
+
+      // メール確認成功時にプロフィールを作成
+      try {
+        await createProfileAfterConfirmation();
+        console.log("Profile created successfully after email confirmation");
+      } catch (profileError) {
+        console.error(
+          "Failed to create profile after confirmation:",
+          profileError
+        );
+        // プロフィール作成に失敗しても認証フローは続行
+      }
 
       // セッションがあればCookieにセットしてリダイレクト
       const response = NextResponse.redirect(`${origin}${next}`);
