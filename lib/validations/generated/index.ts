@@ -85,7 +85,7 @@ export const CategoryKeyPointScalarFieldEnumSchema = z.enum(['id','categoryId','
 
 export const CategoryCommonQuestionScalarFieldEnumSchema = z.enum(['id','categoryId','question','answer','created_at','updated_at']);
 
-export const ProductScalarFieldEnumSchema = z.enum(['id','name','description','price','rating','features','amazon_url','image_url','created_at','updated_at']);
+export const ProductScalarFieldEnumSchema = z.enum(['id','name','description','price','rating','features','rakuten_url','image_url','created_at','updated_at']);
 
 export const ProductCategoryScalarFieldEnumSchema = z.enum(['id','productId','categoryId','created_at','updated_at']);
 
@@ -542,7 +542,7 @@ export const ProductSchema = z.object({
   price: z.instanceof(Prisma.Decimal, { message: "Field 'price' must be a Decimal. Location: ['Models', 'Product']"}).nullable(),
   rating: z.instanceof(Prisma.Decimal, { message: "Field 'rating' must be a Decimal. Location: ['Models', 'Product']"}).nullable(),
   features: z.string(),
-  amazon_url: z.string().nullable(),
+  rakuten_url: z.string().nullable(),
   image_url: z.string().nullable(),
   created_at: z.coerce.date(),
   updated_at: z.coerce.date(),
