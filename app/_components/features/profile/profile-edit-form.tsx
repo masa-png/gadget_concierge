@@ -23,7 +23,7 @@ import { Save, X, Edit3 } from "lucide-react";
 
 interface ProfileEditFormProps {
   profile: ProfileSelectData;
-  onSave: () => void;
+  onSave: (updatedProfile?: ProfileSelectData) => void;
   onCancel: () => void;
 }
 
@@ -57,8 +57,9 @@ export function ProfileEditForm({
         full_name: state.data.full_name || "",
         avatar_url: state.data.avatar_url || "",
       });
-      toast.success(state.message || "プロフィールが更新されました");
-      onSave();
+
+      // 最新データをコールバックで渡す
+      onSave(state.data);
     } else if (!state.success && state.error) {
       toast.error(state.error);
 
