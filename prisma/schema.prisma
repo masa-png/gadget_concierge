@@ -7,19 +7,19 @@ generator client {
 
 generator zod {
   provider                         = "zod-prisma-types"
-  output                          = "../lib/validations/generated"
-  createRelationValuesTypes       = true
-  createInputTypes                = false
-  createModelTypes                = true
-  addInputTypeValidation          = false
-  addIncludeType                  = false
-  addSelectType                   = false
-  validateWhereUniqueInput        = false
+  output                           = "../lib/validations/generated"
+  createRelationValuesTypes        = true
+  createInputTypes                 = false
+  createModelTypes                 = true
+  addInputTypeValidation           = false
+  addIncludeType                   = false
+  addSelectType                    = false
+  validateWhereUniqueInput         = false
   createOptionalDefaultValuesTypes = true
-  createPartialTypes              = true
-  useMultipleFiles                = false
-  writeBarrelFiles                = false
-  prismaClientPath                = "@prisma/client"
+  createPartialTypes               = true
+  useMultipleFiles                 = false
+  writeBarrelFiles                 = false
+  prismaClientPath                 = "@prisma/client"
 }
 
 datasource db {
@@ -114,7 +114,7 @@ model Product {
   price       Decimal? @db.Decimal(10, 2)
   rating      Decimal? @db.Decimal(3, 2) // 5.00まで
   features    String // 製品の特徴
-  amazon_url  String?
+  rakuten_url String?
   image_url   String?
   created_at  DateTime @default(now()) @db.Timestamptz(6)
   updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
@@ -241,8 +241,8 @@ model Answer {
   questionnaireSessionId String
   questionId             String
   questionOptionId       String? // 選択肢回答の場合
-  range_value            Int? @db.Integer // 範囲回答の場合 (0-100)
-  text_value             String? @db.Text // テキスト回答の場合
+  range_value            Int?     @db.Integer // 範囲回答の場合 (0-100)
+  text_value             String?  @db.Text // テキスト回答の場合
   created_at             DateTime @default(now()) @db.Timestamptz(6)
   updated_at             DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
