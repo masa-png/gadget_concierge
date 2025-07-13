@@ -274,6 +274,7 @@ export type CategoryRelations = {
   keyPoints: CategoryKeyPointWithRelations[];
   commonQuestions: CategoryCommonQuestionWithRelations[];
   userHistories: UserHistoryWithRelations[];
+  QuestionnaireSession: QuestionnaireSessionWithRelations[];
 };
 
 export type CategoryWithRelations = z.infer<typeof CategorySchema> & CategoryRelations
@@ -286,6 +287,7 @@ export const CategoryWithRelationsSchema: z.ZodType<CategoryWithRelations> = Cat
   keyPoints: z.lazy(() => CategoryKeyPointWithRelationsSchema).array(),
   commonQuestions: z.lazy(() => CategoryCommonQuestionWithRelationsSchema).array(),
   userHistories: z.lazy(() => UserHistoryWithRelationsSchema).array(),
+  QuestionnaireSession: z.lazy(() => QuestionnaireSessionWithRelationsSchema).array(),
 }))
 
 // CATEGORY OPTIONAL DEFAULTS RELATION SCHEMA
@@ -299,6 +301,7 @@ export type CategoryOptionalDefaultsRelations = {
   keyPoints: CategoryKeyPointOptionalDefaultsWithRelations[];
   commonQuestions: CategoryCommonQuestionOptionalDefaultsWithRelations[];
   userHistories: UserHistoryOptionalDefaultsWithRelations[];
+  QuestionnaireSession: QuestionnaireSessionOptionalDefaultsWithRelations[];
 };
 
 export type CategoryOptionalDefaultsWithRelations = z.infer<typeof CategoryOptionalDefaultsSchema> & CategoryOptionalDefaultsRelations
@@ -311,6 +314,7 @@ export const CategoryOptionalDefaultsWithRelationsSchema: z.ZodType<CategoryOpti
   keyPoints: z.lazy(() => CategoryKeyPointOptionalDefaultsWithRelationsSchema).array(),
   commonQuestions: z.lazy(() => CategoryCommonQuestionOptionalDefaultsWithRelationsSchema).array(),
   userHistories: z.lazy(() => UserHistoryOptionalDefaultsWithRelationsSchema).array(),
+  QuestionnaireSession: z.lazy(() => QuestionnaireSessionOptionalDefaultsWithRelationsSchema).array(),
 }))
 
 // CATEGORY PARTIAL RELATION SCHEMA
@@ -324,6 +328,7 @@ export type CategoryPartialRelations = {
   keyPoints?: CategoryKeyPointPartialWithRelations[];
   commonQuestions?: CategoryCommonQuestionPartialWithRelations[];
   userHistories?: UserHistoryPartialWithRelations[];
+  QuestionnaireSession?: QuestionnaireSessionPartialWithRelations[];
 };
 
 export type CategoryPartialWithRelations = z.infer<typeof CategoryPartialSchema> & CategoryPartialRelations
@@ -336,6 +341,7 @@ export const CategoryPartialWithRelationsSchema: z.ZodType<CategoryPartialWithRe
   keyPoints: z.lazy(() => CategoryKeyPointPartialWithRelationsSchema).array(),
   commonQuestions: z.lazy(() => CategoryCommonQuestionPartialWithRelationsSchema).array(),
   userHistories: z.lazy(() => UserHistoryPartialWithRelationsSchema).array(),
+  QuestionnaireSession: z.lazy(() => QuestionnaireSessionPartialWithRelationsSchema).array(),
 })).partial()
 
 export type CategoryOptionalDefaultsWithPartialRelations = z.infer<typeof CategoryOptionalDefaultsSchema> & CategoryPartialRelations
@@ -348,6 +354,7 @@ export const CategoryOptionalDefaultsWithPartialRelationsSchema: z.ZodType<Categ
   keyPoints: z.lazy(() => CategoryKeyPointPartialWithRelationsSchema).array(),
   commonQuestions: z.lazy(() => CategoryCommonQuestionPartialWithRelationsSchema).array(),
   userHistories: z.lazy(() => UserHistoryPartialWithRelationsSchema).array(),
+  QuestionnaireSession: z.lazy(() => QuestionnaireSessionPartialWithRelationsSchema).array(),
 }).partial())
 
 export type CategoryWithPartialRelations = z.infer<typeof CategorySchema> & CategoryPartialRelations
@@ -360,6 +367,7 @@ export const CategoryWithPartialRelationsSchema: z.ZodType<CategoryWithPartialRe
   keyPoints: z.lazy(() => CategoryKeyPointPartialWithRelationsSchema).array(),
   commonQuestions: z.lazy(() => CategoryCommonQuestionPartialWithRelationsSchema).array(),
   userHistories: z.lazy(() => UserHistoryPartialWithRelationsSchema).array(),
+  QuestionnaireSession: z.lazy(() => QuestionnaireSessionPartialWithRelationsSchema).array(),
 }).partial())
 
 /////////////////////////////////////////
@@ -1147,6 +1155,7 @@ export type QuestionnaireSessionOptionalDefaults = z.infer<typeof QuestionnaireS
 
 export type QuestionnaireSessionRelations = {
   userProfile: UserProfileWithRelations;
+  category?: CategoryWithRelations | null;
   answers: AnswerWithRelations[];
   recommendations: RecommendationWithRelations[];
   userHistories: UserHistoryWithRelations[];
@@ -1156,6 +1165,7 @@ export type QuestionnaireSessionWithRelations = z.infer<typeof QuestionnaireSess
 
 export const QuestionnaireSessionWithRelationsSchema: z.ZodType<QuestionnaireSessionWithRelations> = QuestionnaireSessionSchema.merge(z.object({
   userProfile: z.lazy(() => UserProfileWithRelationsSchema),
+  category: z.lazy(() => CategoryWithRelationsSchema).nullable(),
   answers: z.lazy(() => AnswerWithRelationsSchema).array(),
   recommendations: z.lazy(() => RecommendationWithRelationsSchema).array(),
   userHistories: z.lazy(() => UserHistoryWithRelationsSchema).array(),
@@ -1166,6 +1176,7 @@ export const QuestionnaireSessionWithRelationsSchema: z.ZodType<QuestionnaireSes
 
 export type QuestionnaireSessionOptionalDefaultsRelations = {
   userProfile: UserProfileOptionalDefaultsWithRelations;
+  category?: CategoryOptionalDefaultsWithRelations | null;
   answers: AnswerOptionalDefaultsWithRelations[];
   recommendations: RecommendationOptionalDefaultsWithRelations[];
   userHistories: UserHistoryOptionalDefaultsWithRelations[];
@@ -1175,6 +1186,7 @@ export type QuestionnaireSessionOptionalDefaultsWithRelations = z.infer<typeof Q
 
 export const QuestionnaireSessionOptionalDefaultsWithRelationsSchema: z.ZodType<QuestionnaireSessionOptionalDefaultsWithRelations> = QuestionnaireSessionOptionalDefaultsSchema.merge(z.object({
   userProfile: z.lazy(() => UserProfileOptionalDefaultsWithRelationsSchema),
+  category: z.lazy(() => CategoryOptionalDefaultsWithRelationsSchema).nullable(),
   answers: z.lazy(() => AnswerOptionalDefaultsWithRelationsSchema).array(),
   recommendations: z.lazy(() => RecommendationOptionalDefaultsWithRelationsSchema).array(),
   userHistories: z.lazy(() => UserHistoryOptionalDefaultsWithRelationsSchema).array(),
@@ -1185,6 +1197,7 @@ export const QuestionnaireSessionOptionalDefaultsWithRelationsSchema: z.ZodType<
 
 export type QuestionnaireSessionPartialRelations = {
   userProfile?: UserProfilePartialWithRelations;
+  category?: CategoryPartialWithRelations | null;
   answers?: AnswerPartialWithRelations[];
   recommendations?: RecommendationPartialWithRelations[];
   userHistories?: UserHistoryPartialWithRelations[];
@@ -1194,6 +1207,7 @@ export type QuestionnaireSessionPartialWithRelations = z.infer<typeof Questionna
 
 export const QuestionnaireSessionPartialWithRelationsSchema: z.ZodType<QuestionnaireSessionPartialWithRelations> = QuestionnaireSessionPartialSchema.merge(z.object({
   userProfile: z.lazy(() => UserProfilePartialWithRelationsSchema),
+  category: z.lazy(() => CategoryPartialWithRelationsSchema).nullable(),
   answers: z.lazy(() => AnswerPartialWithRelationsSchema).array(),
   recommendations: z.lazy(() => RecommendationPartialWithRelationsSchema).array(),
   userHistories: z.lazy(() => UserHistoryPartialWithRelationsSchema).array(),
@@ -1203,6 +1217,7 @@ export type QuestionnaireSessionOptionalDefaultsWithPartialRelations = z.infer<t
 
 export const QuestionnaireSessionOptionalDefaultsWithPartialRelationsSchema: z.ZodType<QuestionnaireSessionOptionalDefaultsWithPartialRelations> = QuestionnaireSessionOptionalDefaultsSchema.merge(z.object({
   userProfile: z.lazy(() => UserProfilePartialWithRelationsSchema),
+  category: z.lazy(() => CategoryPartialWithRelationsSchema).nullable(),
   answers: z.lazy(() => AnswerPartialWithRelationsSchema).array(),
   recommendations: z.lazy(() => RecommendationPartialWithRelationsSchema).array(),
   userHistories: z.lazy(() => UserHistoryPartialWithRelationsSchema).array(),
@@ -1212,6 +1227,7 @@ export type QuestionnaireSessionWithPartialRelations = z.infer<typeof Questionna
 
 export const QuestionnaireSessionWithPartialRelationsSchema: z.ZodType<QuestionnaireSessionWithPartialRelations> = QuestionnaireSessionSchema.merge(z.object({
   userProfile: z.lazy(() => UserProfilePartialWithRelationsSchema),
+  category: z.lazy(() => CategoryPartialWithRelationsSchema).nullable(),
   answers: z.lazy(() => AnswerPartialWithRelationsSchema).array(),
   recommendations: z.lazy(() => RecommendationPartialWithRelationsSchema).array(),
   userHistories: z.lazy(() => UserHistoryPartialWithRelationsSchema).array(),

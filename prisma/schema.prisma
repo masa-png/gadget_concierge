@@ -65,11 +65,12 @@ model Category {
   subCategories  Category[] @relation("CategorySubCategory")
 
   // リレーション
-  productCategories ProductCategory[]
-  questions         Question[]
-  keyPoints         CategoryKeyPoint[]
-  commonQuestions   CategoryCommonQuestion[]
-  userHistories     UserHistory[]
+  productCategories    ProductCategory[]
+  questions            Question[]
+  keyPoints            CategoryKeyPoint[]
+  commonQuestions      CategoryCommonQuestion[]
+  userHistories        UserHistory[]
+  QuestionnaireSession QuestionnaireSession[]
 
   @@index([parentId])
   @@index([name])
@@ -223,6 +224,7 @@ model QuestionnaireSession {
 
   // リレーション
   userProfile     UserProfile      @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  category        Category?        @relation(fields: [categoryId], references: [id])
   answers         Answer[]
   recommendations Recommendation[]
   userHistories   UserHistory[]
