@@ -10,8 +10,22 @@ import {
   QuestionFlowState,
 } from "@/lib/types/questionnaire";
 
+// APIクライアントのインポート
+import {
+  sessionApi,
+  questionApi,
+  answerApi,
+  ApiError,
+  isAuthError,
+} from "@/lib/api-client";
+
+// 認証フックのインポート
+import { useAuth } from "@/app/_components/shared/providers/auth-provider";
+
 // 質問フロー管理フック
 const useQuestionFlow = () => {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+
   const [state, setState] = useState<QuestionFlowState>({
     sessionId: null,
     categoryId: null,
@@ -28,6 +42,8 @@ const useQuestionFlow = () => {
   // 現在の質問を取得
   const getCurrentQuestion = useCallback((): Question | null => {
     if (
+      !state.questions ||
+      !Array.isArray(state.questions) ||
       state.questions.length === 0 ||
       state.currentQuestionIndex >= state.questions.length
     ) {
@@ -40,6 +56,12 @@ const useQuestionFlow = () => {
   const getCurrentAnswer = useCallback((): Answer | null => {
     const currentQuestion = getCurrentQuestion();
     if (!currentQuestion) return null;
+
+    // 安全なアクセスのため、answersが存在することを確認
+    if (!state.answers || typeof state.answers.get !== "function") {
+      return null;
+    }
+
     return state.answers.get(currentQuestion.id) || null;
   }, [getCurrentQuestion, state.answers]);
 
@@ -48,22 +70,29 @@ const useQuestionFlow = () => {
     const currentQuestion = getCurrentQuestion();
     if (!currentQuestion) return false;
 
-    if (!currentQuestion.is_required) return true;
+    const currentAnswer = getCurrentAnswer();
 
-    const answer = getCurrentAnswer();
-    if (!answer) return false;
+    // 必須質問の場合は回答が必要
+    if (currentQuestion.is_required && !currentAnswer) {
+      return false;
+    }
 
+    // 質問タイプに応じたバリデーション
     switch (currentQuestion.type) {
-      case QuestionType.SINGLE_CHOICE:
-        return !!answer.questionOptionId;
-      case QuestionType.MULTIPLE_CHOICE:
+      case "SINGLE_CHOICE":
+        return !!currentAnswer?.questionOptionId;
+      case "MULTIPLE_CHOICE":
         return !!(
-          answer.questionOptionIds && answer.questionOptionIds.length > 0
+          currentAnswer?.questionOptionIds &&
+          currentAnswer.questionOptionIds.length > 0
         );
-      case QuestionType.RANGE:
-        return answer.range_value !== undefined && answer.range_value !== null;
-      case QuestionType.TEXT:
-        return !!(answer.text_value && answer.text_value.trim().length > 0);
+      case "RANGE":
+        return currentAnswer?.range_value !== undefined;
+      case "TEXT":
+        return !!(
+          currentAnswer?.text_value &&
+          currentAnswer.text_value.trim().length > 0
+        );
       default:
         return false;
     }
@@ -72,20 +101,27 @@ const useQuestionFlow = () => {
   // 進捗情報を取得
   const getProgress = useCallback(() => {
     const current = state.currentQuestionIndex + 1;
-    const total = state.questions.length;
+    const total =
+      state.questions && Array.isArray(state.questions)
+        ? state.questions.length
+        : 0;
     const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
     return { current, total, percentage };
-  }, [state.currentQuestionIndex, state.questions.length]);
+  }, [state.currentQuestionIndex, state.questions]);
 
   // ナビゲーション状態を更新
   const updateNavigationState = useCallback(() => {
+    const questionsLength =
+      state.questions && Array.isArray(state.questions)
+        ? state.questions.length
+        : 0;
+
     const canGoNext =
       validateCurrentQuestion() ||
-      state.currentQuestionIndex < state.questions.length - 1;
+      state.currentQuestionIndex < questionsLength - 1;
     const canGoPrevious = state.currentQuestionIndex > 0;
     const isCompleted =
-      state.currentQuestionIndex >= state.questions.length &&
-      state.questions.length > 0;
+      state.currentQuestionIndex >= questionsLength && questionsLength > 0;
 
     setState((prev) => ({
       ...prev,
@@ -93,161 +129,118 @@ const useQuestionFlow = () => {
       canGoPrevious,
       isCompleted,
     }));
-  }, [
-    state.currentQuestionIndex,
-    state.questions.length,
-    validateCurrentQuestion,
-  ]);
+  }, [state.currentQuestionIndex, state.questions, validateCurrentQuestion]);
 
   // フローを初期化
   const initializeFlow = useCallback(
     async (categoryId: string, sessionId?: string) => {
+      // 認証状態を確認
+      if (authLoading) {
+        setState((prev) => ({
+          ...prev,
+          error: "認証状態を確認中です...",
+        }));
+        return;
+      }
+
+      if (!isAuthenticated) {
+        setState((prev) => ({
+          ...prev,
+          error: "ログインが必要です",
+        }));
+        return;
+      }
+
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        // モックデータ（実際のAPIエンドポイント実装まで）
-        const mockQuestions: Question[] = [
-          {
-            id: "1",
-            text: "主な使用用途は何ですか？",
-            description:
-              "スマートフォンをどのような場面で使用されることが多いですか？",
-            type: QuestionType.SINGLE_CHOICE,
-            is_required: true,
-            options: [
-              {
-                id: "1a",
-                label: "通話・メール・SNS中心",
-                description: "基本的な連絡手段として使用",
-                value: "basic_communication",
-              },
-              {
-                id: "1b",
-                label: "写真・動画撮影",
-                description: "カメラ機能を重視した使用",
-                value: "camera_focused",
-              },
-              {
-                id: "1c",
-                label: "ゲーム・動画視聴",
-                description: "エンターテイメント用途がメイン",
-                value: "entertainment",
-              },
-              {
-                id: "1d",
-                label: "ビジネス・仕事",
-                description: "仕事での利用が中心",
-                value: "business",
-              },
-            ],
-          },
-          {
-            id: "2",
-            text: "ご希望の予算はどのくらいですか？",
-            description: "スマートフォンの購入予算を教えてください",
-            type: QuestionType.SINGLE_CHOICE,
-            is_required: true,
-            options: [
-              {
-                id: "2a",
-                label: "5万円以下",
-                description: "エントリーモデル",
-                value: "budget_under_50k",
-              },
-              {
-                id: "2b",
-                label: "5-10万円",
-                description: "ミドルレンジモデル",
-                value: "budget_50k_100k",
-              },
-              {
-                id: "2c",
-                label: "10-15万円",
-                description: "ハイエンドモデル",
-                value: "budget_100k_150k",
-              },
-              {
-                id: "2d",
-                label: "15万円以上",
-                description: "フラッグシップモデル",
-                value: "budget_over_150k",
-              },
-            ],
-          },
-          {
-            id: "3",
-            text: "カメラ性能の重要度は？",
-            description:
-              "1（重要でない）から10（とても重要）で評価してください",
-            type: QuestionType.RANGE,
-            is_required: false,
-          },
-          {
-            id: "4",
-            text: "重視したい機能は何ですか？",
-            description: "最も重要な機能を選んでください（複数選択可）",
-            type: QuestionType.MULTIPLE_CHOICE,
-            is_required: true,
-            options: [
-              {
-                id: "4a",
-                label: "バッテリー持続時間",
-                description: "長時間の使用が可能",
-                value: "battery_life",
-              },
-              {
-                id: "4b",
-                label: "処理速度・性能",
-                description: "アプリの動作がスムーズ",
-                value: "performance",
-              },
-              {
-                id: "4c",
-                label: "ディスプレイ品質",
-                description: "画面の美しさ・見やすさ",
-                value: "display_quality",
-              },
-              {
-                id: "4d",
-                label: "ストレージ容量",
-                description: "データをたくさん保存",
-                value: "storage_capacity",
-              },
-            ],
-          },
-          {
-            id: "5",
-            text: "その他ご要望がございましたら教えてください",
-            description: "自由にご記入ください",
-            type: QuestionType.TEXT,
-            is_required: false,
-          },
-        ];
+        let actualSessionId = sessionId;
 
-        // セッションIDを生成（実際のAPIではサーバーから取得）
-        const actualSessionId = sessionId || `session_${Date.now()}`;
+        // セッションIDがない場合は新規作成
+        if (!actualSessionId) {
+          const sessionResponse = await sessionApi.create(categoryId);
+          actualSessionId = sessionResponse.data.session.id;
+        }
+
+        console.log("セッションID:", actualSessionId);
+
+        // 質問データを取得
+        const questionsResponse = await questionApi.getByCategory(categoryId);
+
+        console.log("取得した質問データ:", questionsResponse);
+
+        // APIレスポンスの安全性を確認
+        if (
+          !questionsResponse?.data ||
+          !Array.isArray(questionsResponse.data.questions)
+        ) {
+          throw new Error("質問データの取得に失敗しました");
+        }
+
+        // APIレスポンスをQuestion型に変換
+        const questions: Question[] = questionsResponse.data.questions.map(
+          (q) => ({
+            id: q.id,
+            text: q.text,
+            description: q.description,
+            type: q.type as QuestionType,
+            is_required: q.is_required,
+            options: Array.isArray(q.options)
+              ? q.options.map((opt) => ({
+                  id: opt.id,
+                  label: opt.label,
+                  description: opt.description,
+                  value: opt.value,
+                }))
+              : [],
+          })
+        );
 
         setState((prev) => ({
           ...prev,
           sessionId: actualSessionId,
           categoryId,
-          questions: mockQuestions,
+          questions,
           currentQuestionIndex: 0,
           isLoading: false,
           error: null,
         }));
       } catch (error) {
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "予期しないエラーが発生しました",
-        }));
+        console.error("質問フロー初期化エラー:", error);
+
+        if (isAuthError(error)) {
+          setState((prev) => ({
+            ...prev,
+            isLoading: false,
+            error: "ログインが必要です。ページを再読み込みしてください。",
+          }));
+        } else if (error instanceof ApiError && error.status === 429) {
+          setState((prev) => ({
+            ...prev,
+            isLoading: false,
+            error:
+              "リクエストが多すぎます。しばらく待ってから再度お試しください。",
+          }));
+        } else if (error instanceof TypeError) {
+          setState((prev) => ({
+            ...prev,
+            isLoading: false,
+            error:
+              "サーバーに接続できません。ネットワークやサーバー状態を確認してください。",
+          }));
+        } else {
+          setState((prev) => ({
+            ...prev,
+            isLoading: false,
+            error:
+              error instanceof ApiError
+                ? error.message
+                : "予期しないエラーが発生しました",
+          }));
+        }
       }
     },
-    []
+    [isAuthenticated, authLoading]
   );
 
   // 回答を保存
@@ -259,8 +252,14 @@ const useQuestionFlow = () => {
       }
 
       try {
-        // 実際のAPIではここでサーバーに保存
-        console.log("回答保存:", { sessionId: state.sessionId, ...answer });
+        // APIに回答を保存
+        await answerApi.save(state.sessionId, {
+          questionId: answer.questionId,
+          questionOptionId: answer.questionOptionId,
+          questionOptionIds: answer.questionOptionIds,
+          range_value: answer.range_value,
+          text_value: answer.text_value,
+        });
 
         // ローカル状態を更新
         setState((prev) => ({
@@ -269,6 +268,10 @@ const useQuestionFlow = () => {
         }));
       } catch (error) {
         console.error("回答保存エラー:", error);
+        if (error instanceof ApiError) {
+          throw error;
+        }
+        throw new Error("回答の保存に失敗しました");
       }
     },
     [state.sessionId]
@@ -276,13 +279,17 @@ const useQuestionFlow = () => {
 
   // 次の質問へ
   const goToNext = useCallback(() => {
-    if (state.currentQuestionIndex < state.questions.length - 1) {
+    const questionsLength =
+      state.questions && Array.isArray(state.questions)
+        ? state.questions.length
+        : 0;
+    if (state.currentQuestionIndex < questionsLength - 1) {
       setState((prev) => ({
         ...prev,
         currentQuestionIndex: prev.currentQuestionIndex + 1,
       }));
     }
-  }, [state.currentQuestionIndex, state.questions.length]);
+  }, [state.currentQuestionIndex, state.questions]);
 
   // 前の質問へ
   const goToPrevious = useCallback(() => {
@@ -299,8 +306,8 @@ const useQuestionFlow = () => {
     if (!state.sessionId) return;
 
     try {
-      // 実際のAPIではサーバーでセッション完了処理
-      console.log("セッション完了:", state.sessionId);
+      // APIでセッション完了処理
+      await sessionApi.complete(state.sessionId);
 
       setState((prev) => ({
         ...prev,
@@ -308,6 +315,10 @@ const useQuestionFlow = () => {
       }));
     } catch (error) {
       console.error("セッション完了エラー:", error);
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new Error("セッションの完了に失敗しました");
     }
   }, [state.sessionId]);
 

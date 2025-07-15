@@ -16,7 +16,7 @@ interface RouteParams {
   };
 }
 
-// セッション中断API
+// セッション中断API（ABANDONEDに統一）
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     // レート制限チェック
@@ -56,8 +56,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // セッションを中断
-    const pausedSession = await prisma.questionnaireSession.update({
+    // セッションをABANDONED（中断）に更新
+    const abandonedSession = await prisma.questionnaireSession.update({
       where: { id: sessionId },
       data: {
         status: "ABANDONED",
@@ -66,18 +66,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const responseData = {
       session: {
-        id: pausedSession.id,
-        categoryId: pausedSession.categoryId,
-        status: pausedSession.status,
-        started_at: pausedSession.started_at,
-        paused_at: new Date(),
+        id: abandonedSession.id,
+        categoryId: abandonedSession.categoryId,
+        status: abandonedSession.status,
+        started_at: abandonedSession.started_at,
+        abandoned_at: new Date(),
       },
-      message: "セッションが正常に中断されました",
+      message: "セッションが正常に中断（ABANDONED）されました",
     };
 
     return setSecurityHeaders(createSuccessResponse(responseData));
   } catch (error) {
-    console.error("Session PAUSE error:", error);
+    console.error("Session ABANDONED error:", error);
     if (error instanceof Response) return error;
     return createErrorResponse(
       "セッション中断中にエラーが発生しました",

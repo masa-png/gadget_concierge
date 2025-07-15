@@ -1,4 +1,4 @@
-// 公開API（質問データは誰でも閲覧可能）
+// 認証必須API（質問データは認証済みユーザーのみ閲覧可能）
 
 import { NextRequest } from "next/server";
 import {
@@ -9,6 +9,7 @@ import {
 } from "@/lib/api/middleware";
 import { ErrorCodes } from "@/lib/validations/api";
 import { prisma } from "@/lib/prisma";
+import { createClient } from "@/utils/supabase/server";
 
 interface RouteParams {
   params: {
@@ -18,9 +19,23 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    // レート制限チェック
+    // 認証チェック
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return createErrorResponse(
+        "認証が必要です",
+        401,
+        ErrorCodes.UNAUTHORIZED
+      );
+    }
+
+    // レート制限チェック（軽減）
     const clientIP = request.ip || "unknown";
-    if (!rateLimit(clientIP, 50, 60000)) {
+    if (!rateLimit(clientIP, 100, 60000)) {
       return createErrorResponse(
         "リクエスト数が上限を超えました",
         429,

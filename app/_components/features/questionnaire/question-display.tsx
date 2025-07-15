@@ -17,6 +17,7 @@ import TextQuestion from "./text-question";
 import QuestionProgress from "./question-progress";
 import QuestionNavigation from "./question-navigation";
 import ValidationError from "./validation-error";
+import { Button } from "@/app/_components/ui/button";
 
 // メインコンポーネント
 interface QuestionDisplayProps {
@@ -33,21 +34,34 @@ const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
   const questionFlow = useQuestionFlow();
   const [currentAnswer, setCurrentAnswer] = useState<Answer | null>(null);
   const [showValidationError, setShowValidationError] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
-  // 初期化
+  // 初回のみ初期化
   useEffect(() => {
-    questionFlow.initializeFlow(categoryId, sessionId);
-  }, [categoryId, sessionId]);
+    if (!initialized) {
+      questionFlow.initializeFlow(categoryId, sessionId);
+      setInitialized(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryId, sessionId, initialized]);
 
   // 現在の質問が変わったときに回答を更新
   useEffect(() => {
     const question = questionFlow.getCurrentQuestion();
     if (question) {
-      const existingAnswer = questionFlow.answers.get(question.id);
+      // 安全なアクセスのため、answersが存在することを確認
+      const existingAnswer =
+        questionFlow.answers && questionFlow.answers.get
+          ? questionFlow.answers.get(question.id)
+          : null;
       setCurrentAnswer(existingAnswer || null);
       setShowValidationError(false);
     }
-  }, [questionFlow.currentQuestionIndex, questionFlow.questions]);
+  }, [
+    questionFlow.currentQuestionIndex,
+    questionFlow.questions,
+    questionFlow.answers,
+  ]);
 
   const progress = questionFlow.getProgress();
   const currentQuestion = questionFlow.getCurrentQuestion();
@@ -66,10 +80,13 @@ const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
       return;
     }
 
-    if (
-      questionFlow.currentQuestionIndex >=
-      questionFlow.questions.length - 1
-    ) {
+    // 安全なアクセスのため、questionsが存在し、lengthプロパティがあることを確認
+    const questionsLength =
+      questionFlow.questions && Array.isArray(questionFlow.questions)
+        ? questionFlow.questions.length
+        : 0;
+
+    if (questionFlow.currentQuestionIndex >= questionsLength - 1) {
       // 最後の質問の場合、完了処理
       questionFlow.completeFlow().then(() => {
         if (questionFlow.sessionId) {
@@ -123,12 +140,15 @@ const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <p className="text-red-600 mb-4">{questionFlow.error}</p>
-          <button
-            onClick={() => questionFlow.initializeFlow(categoryId, sessionId)}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          <Button
+            onClick={() => {
+              questionFlow.initializeFlow(categoryId, sessionId);
+              setInitialized(true);
+            }}
+            variant="default"
           >
             再試行
-          </button>
+          </Button>
         </div>
       </div>
     );

@@ -23,6 +23,35 @@ async function main() {
 
   console.log("Existing data cleaned");
 
+  // Create Gadget Categories (フロントエンドで使用するカテゴリ)
+  const chargersCategory = await prisma.category.create({
+    data: {
+      name: "充電器",
+      description: "スマホ・PC用の充電器",
+    },
+  });
+
+  const mobileBatteryCategory = await prisma.category.create({
+    data: {
+      name: "モバイルバッテリー",
+      description: "外出先での充電用",
+    },
+  });
+
+  const headphonesCategory = await prisma.category.create({
+    data: {
+      name: "ヘッドホン・イヤホン",
+      description: "音楽・通話用オーディオ機器",
+    },
+  });
+
+  const cablesCategory = await prisma.category.create({
+    data: {
+      name: "ケーブル・アクセサリー",
+      description: "接続用ケーブル類",
+    },
+  });
+
   // Create Categories (楽天市場のカテゴリ構造に基づく)
   const electronicsCategory = await prisma.category.create({
     data: {
@@ -86,7 +115,87 @@ async function main() {
 
   console.log("Categories created");
 
-  // Create Category Key Points
+  // Create Category Key Points for Gadget Categories
+  await Promise.all([
+    // 充電器のキーポイント
+    prisma.categoryKeyPoint.create({
+      data: {
+        categoryId: chargersCategory.id,
+        point: "出力電力",
+      },
+    }),
+    prisma.categoryKeyPoint.create({
+      data: {
+        categoryId: chargersCategory.id,
+        point: "充電速度",
+      },
+    }),
+    prisma.categoryKeyPoint.create({
+      data: {
+        categoryId: chargersCategory.id,
+        point: "ポート数",
+      },
+    }),
+    // モバイルバッテリーのキーポイント
+    prisma.categoryKeyPoint.create({
+      data: {
+        categoryId: mobileBatteryCategory.id,
+        point: "容量",
+      },
+    }),
+    prisma.categoryKeyPoint.create({
+      data: {
+        categoryId: mobileBatteryCategory.id,
+        point: "出力ポート",
+      },
+    }),
+    prisma.categoryKeyPoint.create({
+      data: {
+        categoryId: mobileBatteryCategory.id,
+        point: "充電速度",
+      },
+    }),
+    // ヘッドホン・イヤホンのキーポイント
+    prisma.categoryKeyPoint.create({
+      data: {
+        categoryId: headphonesCategory.id,
+        point: "音質",
+      },
+    }),
+    prisma.categoryKeyPoint.create({
+      data: {
+        categoryId: headphonesCategory.id,
+        point: "ノイズキャンセリング",
+      },
+    }),
+    prisma.categoryKeyPoint.create({
+      data: {
+        categoryId: headphonesCategory.id,
+        point: "接続方式",
+      },
+    }),
+    // ケーブル・アクセサリーのキーポイント
+    prisma.categoryKeyPoint.create({
+      data: {
+        categoryId: cablesCategory.id,
+        point: "接続規格",
+      },
+    }),
+    prisma.categoryKeyPoint.create({
+      data: {
+        categoryId: cablesCategory.id,
+        point: "長さ",
+      },
+    }),
+    prisma.categoryKeyPoint.create({
+      data: {
+        categoryId: cablesCategory.id,
+        point: "耐久性",
+      },
+    }),
+  ]);
+
+  // Create Category Key Points (既存)
   await Promise.all([
     prisma.categoryKeyPoint.create({
       data: {
@@ -158,7 +267,70 @@ async function main() {
 
   console.log("Category Key Points created");
 
-  // Create Category Common Questions
+  // Create Category Common Questions for Gadget Categories
+  await Promise.all([
+    // 充電器の一般的な質問
+    prisma.categoryCommonQuestion.create({
+      data: {
+        categoryId: chargersCategory.id,
+        question: "GaN充電器とは？",
+        answer:
+          "GaN（窒化ガリウム）を使用した高効率な充電器で、従来より小型・軽量で発熱が少ない特徴があります。",
+      },
+    }),
+    prisma.categoryCommonQuestion.create({
+      data: {
+        categoryId: chargersCategory.id,
+        question: "PD充電とは？",
+        answer:
+          "USB Power Deliveryの略で、USB-Cポートを通じて最大100Wまでの高電力充電が可能な規格です。",
+      },
+    }),
+    // モバイルバッテリーの一般的な質問
+    prisma.categoryCommonQuestion.create({
+      data: {
+        categoryId: mobileBatteryCategory.id,
+        question: "容量はどのくらい必要？",
+        answer:
+          "スマートフォン1台分なら10000mAh、複数台充電するなら20000mAh以上をおすすめします。",
+      },
+    }),
+    prisma.categoryCommonQuestion.create({
+      data: {
+        categoryId: mobileBatteryCategory.id,
+        question: "飛行機に持ち込み可能？",
+        answer: "100Wh（約27000mAh）以下であれば機内持ち込み可能です。",
+      },
+    }),
+    // ヘッドホン・イヤホンの一般的な質問
+    prisma.categoryCommonQuestion.create({
+      data: {
+        categoryId: headphonesCategory.id,
+        question: "ワイヤレスと有線の違いは？",
+        answer:
+          "ワイヤレスは利便性が高く、有線は音質が安定しています。用途に応じて選択してください。",
+      },
+    }),
+    prisma.categoryCommonQuestion.create({
+      data: {
+        categoryId: headphonesCategory.id,
+        question: "ノイズキャンセリングの効果は？",
+        answer:
+          "周囲の騒音を大幅に軽減し、音楽や通話に集中できる環境を作ります。",
+      },
+    }),
+    // ケーブル・アクセサリーの一般的な質問
+    prisma.categoryCommonQuestion.create({
+      data: {
+        categoryId: cablesCategory.id,
+        question: "USB-CとLightningの違いは？",
+        answer:
+          "USB-Cは汎用規格で多くのデバイスで使用可能、LightningはApple製品専用です。",
+      },
+    }),
+  ]);
+
+  // Create Category Common Questions (既存)
   await Promise.all([
     prisma.categoryCommonQuestion.create({
       data: {
@@ -757,8 +929,163 @@ async function main() {
 
   console.log("Product Tags created");
 
-  // Create Questions
-  const questions = await Promise.all([
+  // Create Questions for Gadget Categories (フロントエンドで使用するカテゴリ)
+  const gadgetQuestions = await Promise.all([
+    // 充電器の質問
+    prisma.question.create({
+      data: {
+        categoryId: chargersCategory.id,
+        text: "充電したいデバイスは何ですか？",
+        description: "主に充電したいデバイスを教えてください",
+        type: QuestionType.MULTIPLE_CHOICE,
+        is_required: true,
+      },
+    }),
+    prisma.question.create({
+      data: {
+        categoryId: chargersCategory.id,
+        text: "必要な出力電力はどのくらいですか？",
+        description: "デバイスの充電速度に影響します",
+        type: QuestionType.SINGLE_CHOICE,
+        is_required: true,
+      },
+    }),
+    prisma.question.create({
+      data: {
+        categoryId: chargersCategory.id,
+        text: "同時充電したいデバイス数は？",
+        description: "複数のデバイスを同時に充電する必要がありますか？",
+        type: QuestionType.SINGLE_CHOICE,
+        is_required: true,
+      },
+    }),
+    prisma.question.create({
+      data: {
+        categoryId: chargersCategory.id,
+        text: "充電速度の重要度は？",
+        description: "1（重要でない）から10（とても重要）で評価してください",
+        type: QuestionType.RANGE,
+        is_required: false,
+      },
+    }),
+
+    // モバイルバッテリーの質問
+    prisma.question.create({
+      data: {
+        categoryId: mobileBatteryCategory.id,
+        text: "主な使用シーンは？",
+        description: "どのような場面でモバイルバッテリーを使用しますか？",
+        type: QuestionType.MULTIPLE_CHOICE,
+        is_required: true,
+      },
+    }),
+    prisma.question.create({
+      data: {
+        categoryId: mobileBatteryCategory.id,
+        text: "必要な容量はどのくらいですか？",
+        description: "スマートフォンの充電回数で考えてください",
+        type: QuestionType.SINGLE_CHOICE,
+        is_required: true,
+      },
+    }),
+    prisma.question.create({
+      data: {
+        categoryId: mobileBatteryCategory.id,
+        text: "充電したいデバイスは？",
+        description: "主に充電したいデバイスを教えてください",
+        type: QuestionType.MULTIPLE_CHOICE,
+        is_required: true,
+      },
+    }),
+    prisma.question.create({
+      data: {
+        categoryId: mobileBatteryCategory.id,
+        text: "サイズ・重量の重要度は？",
+        description: "1（重要でない）から10（とても重要）で評価してください",
+        type: QuestionType.RANGE,
+        is_required: false,
+      },
+    }),
+
+    // ヘッドホン・イヤホンの質問
+    prisma.question.create({
+      data: {
+        categoryId: headphonesCategory.id,
+        text: "主な使用用途は？",
+        description: "どのような場面で使用しますか？",
+        type: QuestionType.MULTIPLE_CHOICE,
+        is_required: true,
+      },
+    }),
+    prisma.question.create({
+      data: {
+        categoryId: headphonesCategory.id,
+        text: "接続方式の希望は？",
+        description: "有線・ワイヤレスのどちらを希望しますか？",
+        type: QuestionType.SINGLE_CHOICE,
+        is_required: true,
+      },
+    }),
+    prisma.question.create({
+      data: {
+        categoryId: headphonesCategory.id,
+        text: "ノイズキャンセリング機能は必要ですか？",
+        description: "周囲の騒音を軽減する機能について",
+        type: QuestionType.SINGLE_CHOICE,
+        is_required: true,
+      },
+    }),
+    prisma.question.create({
+      data: {
+        categoryId: headphonesCategory.id,
+        text: "音質の重要度は？",
+        description: "1（重要でない）から10（とても重要）で評価してください",
+        type: QuestionType.RANGE,
+        is_required: false,
+      },
+    }),
+
+    // ケーブル・アクセサリーの質問
+    prisma.question.create({
+      data: {
+        categoryId: cablesCategory.id,
+        text: "接続したいデバイスは？",
+        description: "どのデバイス間を接続しますか？",
+        type: QuestionType.MULTIPLE_CHOICE,
+        is_required: true,
+      },
+    }),
+    prisma.question.create({
+      data: {
+        categoryId: cablesCategory.id,
+        text: "必要なケーブル長は？",
+        description: "使用環境に応じてお選びください",
+        type: QuestionType.SINGLE_CHOICE,
+        is_required: true,
+      },
+    }),
+    prisma.question.create({
+      data: {
+        categoryId: cablesCategory.id,
+        text: "データ転送速度の重要度は？",
+        description: "1（重要でない）から10（とても重要）で評価してください",
+        type: QuestionType.RANGE,
+        is_required: false,
+      },
+    }),
+    prisma.question.create({
+      data: {
+        categoryId: cablesCategory.id,
+        text: "耐久性の重要度は？",
+        description: "1（重要でない）から10（とても重要）で評価してください",
+        type: QuestionType.RANGE,
+        is_required: false,
+      },
+    }),
+  ]);
+
+  // Create Questions for existing categories (楽天市場カテゴリ)
+  const existingQuestions = await Promise.all([
     // Smartphone questions
     prisma.question.create({
       data: {
@@ -868,14 +1195,373 @@ async function main() {
     }),
   ]);
 
+  const questions = [...gadgetQuestions, ...existingQuestions];
+
   console.log("Questions created");
 
-  // Create Question Options
+  // Create Question Options for Gadget Categories
+  await Promise.all([
+    // 充電器の質問選択肢
+    // 充電したいデバイス
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[0].id,
+        label: "スマートフォン",
+        description: "iPhone、Android端末",
+        value: "smartphone",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[0].id,
+        label: "ノートPC・タブレット",
+        description: "MacBook、iPad、Androidタブレット",
+        value: "laptop_tablet",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[0].id,
+        label: "ゲーム機",
+        description: "Nintendo Switch、Steam Deck",
+        value: "gaming_device",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[0].id,
+        label: "その他",
+        description: "スマートウォッチ、ワイヤレスイヤホンなど",
+        value: "others",
+      },
+    }),
+
+    // 出力電力
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[1].id,
+        label: "18W以下",
+        description: "基本的な充電に十分",
+        value: "power_18w_under",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[1].id,
+        label: "30W-45W",
+        description: "高速充電対応",
+        value: "power_30w_45w",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[1].id,
+        label: "65W-100W",
+        description: "ノートPC充電対応",
+        value: "power_65w_100w",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[1].id,
+        label: "100W以上",
+        description: "高電力デバイス対応",
+        value: "power_100w_over",
+      },
+    }),
+
+    // 同時充電デバイス数
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[2].id,
+        label: "1台",
+        description: "単一デバイスの充電",
+        value: "single_device",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[2].id,
+        label: "2-3台",
+        description: "複数デバイスの同時充電",
+        value: "multiple_2_3",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[2].id,
+        label: "4台以上",
+        description: "多くのデバイスを同時充電",
+        value: "multiple_4_over",
+      },
+    }),
+
+    // モバイルバッテリーの質問選択肢
+    // 使用シーン
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[4].id,
+        label: "通勤・通学",
+        description: "電車やバスでの移動中",
+        value: "commute",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[4].id,
+        label: "旅行・出張",
+        description: "長時間の外出",
+        value: "travel",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[4].id,
+        label: "カフェ・図書館",
+        description: "外出先での作業",
+        value: "cafe_library",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[4].id,
+        label: "アウトドア",
+        description: "キャンプ、ハイキングなど",
+        value: "outdoor",
+      },
+    }),
+
+    // 容量
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[5].id,
+        label: "5000mAh以下",
+        description: "スマートフォン1回分程度",
+        value: "capacity_5000mAh_under",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[5].id,
+        label: "10000mAh",
+        description: "スマートフォン2-3回分",
+        value: "capacity_10000mAh",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[5].id,
+        label: "20000mAh",
+        description: "スマートフォン4-5回分",
+        value: "capacity_20000mAh",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[5].id,
+        label: "27000mAh以上",
+        description: "大容量、複数デバイス対応",
+        value: "capacity_27000mAh_over",
+      },
+    }),
+
+    // 充電したいデバイス
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[6].id,
+        label: "スマートフォン",
+        description: "iPhone、Android端末",
+        value: "smartphone",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[6].id,
+        label: "タブレット",
+        description: "iPad、Androidタブレット",
+        value: "tablet",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[6].id,
+        label: "ノートPC",
+        description: "MacBook、Windows PC",
+        value: "laptop",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[6].id,
+        label: "その他",
+        description: "スマートウォッチ、ワイヤレスイヤホンなど",
+        value: "others",
+      },
+    }),
+
+    // ヘッドホン・イヤホンの質問選択肢
+    // 使用用途
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[8].id,
+        label: "音楽鑑賞",
+        description: "高音質での音楽視聴",
+        value: "music_listening",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[8].id,
+        label: "通話・会議",
+        description: "ビデオ通話、オンライン会議",
+        value: "calls_meetings",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[8].id,
+        label: "ゲーム",
+        description: "ゲーム音声、ボイスチャット",
+        value: "gaming",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[8].id,
+        label: "運動・スポーツ",
+        description: "ジム、ランニングなど",
+        value: "exercise_sports",
+      },
+    }),
+
+    // 接続方式
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[9].id,
+        label: "有線",
+        description: "安定した音質、バッテリー不要",
+        value: "wired",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[9].id,
+        label: "ワイヤレス（Bluetooth）",
+        description: "利便性重視、コードレス",
+        value: "wireless_bluetooth",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[9].id,
+        label: "ワイヤレス（Wi-Fi）",
+        description: "高音質、ホームオーディオ",
+        value: "wireless_wifi",
+      },
+    }),
+
+    // ノイズキャンセリング
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[10].id,
+        label: "必要",
+        description: "騒音環境での使用が多い",
+        value: "noise_cancelling_yes",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[10].id,
+        label: "不要",
+        description: "静かな環境での使用が多い",
+        value: "noise_cancelling_no",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[10].id,
+        label: "どちらでも",
+        description: "状況に応じて使い分け",
+        value: "noise_cancelling_either",
+      },
+    }),
+
+    // ケーブル・アクセサリーの質問選択肢
+    // 接続デバイス
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[12].id,
+        label: "スマートフォン ↔ PC",
+        description: "データ転送、充電",
+        value: "smartphone_pc",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[12].id,
+        label: "タブレット ↔ PC",
+        description: "データ転送、充電",
+        value: "tablet_pc",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[12].id,
+        label: "カメラ ↔ PC",
+        description: "写真・動画の転送",
+        value: "camera_pc",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[12].id,
+        label: "その他",
+        description: "ゲーム機、オーディオ機器など",
+        value: "others",
+      },
+    }),
+
+    // ケーブル長
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[13].id,
+        label: "30cm以下",
+        description: "デスク上での短距離接続",
+        value: "length_30cm_under",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[13].id,
+        label: "1m",
+        description: "一般的な長さ",
+        value: "length_1m",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[13].id,
+        label: "2m",
+        description: "長距離接続",
+        value: "length_2m",
+      },
+    }),
+    prisma.questionOption.create({
+      data: {
+        questionId: gadgetQuestions[13].id,
+        label: "3m以上",
+        description: "超長距離接続",
+        value: "length_3m_over",
+      },
+    }),
+  ]);
+
+  // Create Question Options for existing categories
   await Promise.all([
     // Smartphone usage options
     prisma.questionOption.create({
       data: {
-        questionId: questions[0].id,
+        questionId: existingQuestions[0].id,
         label: "通話・メール・SNS中心",
         description: "基本的な連絡手段として使用",
         value: "basic_communication",
@@ -909,7 +1595,7 @@ async function main() {
     // Budget options
     prisma.questionOption.create({
       data: {
-        questionId: questions[1].id,
+        questionId: existingQuestions[1].id,
         label: "5万円以下",
         description: "エントリーモデル",
         value: "budget_under_50k",
@@ -917,7 +1603,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[1].id,
+        questionId: existingQuestions[1].id,
         label: "5-10万円",
         description: "ミドルレンジモデル",
         value: "budget_50k_100k",
@@ -925,7 +1611,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[1].id,
+        questionId: existingQuestions[1].id,
         label: "10-15万円",
         description: "ハイエンドモデル",
         value: "budget_100k_150k",
@@ -933,7 +1619,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[1].id,
+        questionId: existingQuestions[1].id,
         label: "15万円以上",
         description: "フラッグシップモデル",
         value: "budget_over_150k",
@@ -943,7 +1629,7 @@ async function main() {
     // Storage options
     prisma.questionOption.create({
       data: {
-        questionId: questions[3].id,
+        questionId: existingQuestions[3].id,
         label: "64GB以下",
         description: "基本的な用途に十分",
         value: "storage_64gb",
@@ -951,7 +1637,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[3].id,
+        questionId: existingQuestions[3].id,
         label: "128GB",
         description: "一般的な使用に最適",
         value: "storage_128gb",
@@ -959,7 +1645,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[3].id,
+        questionId: existingQuestions[3].id,
         label: "256GB",
         description: "写真・動画を多く保存",
         value: "storage_256gb",
@@ -967,7 +1653,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[3].id,
+        questionId: existingQuestions[3].id,
         label: "512GB以上",
         description: "大容量データを扱う",
         value: "storage_512gb_plus",
@@ -977,7 +1663,7 @@ async function main() {
     // Laptop usage options
     prisma.questionOption.create({
       data: {
-        questionId: questions[4].id,
+        questionId: existingQuestions[4].id,
         label: "文書作成・表計算",
         description: "Office系ソフトの使用",
         value: "office_work",
@@ -985,7 +1671,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[4].id,
+        questionId: existingQuestions[4].id,
         label: "プログラミング・開発",
         description: "コーディング、システム開発",
         value: "programming",
@@ -993,7 +1679,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[4].id,
+        questionId: existingQuestions[4].id,
         label: "動画編集・デザイン",
         description: "クリエイティブ作業",
         value: "creative_work",
@@ -1001,7 +1687,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[4].id,
+        questionId: existingQuestions[4].id,
         label: "ゲーム・娯楽",
         description: "PCゲームや動画視聴",
         value: "gaming_entertainment",
@@ -1011,7 +1697,7 @@ async function main() {
     // Portability options
     prisma.questionOption.create({
       data: {
-        questionId: questions[5].id,
+        questionId: existingQuestions[5].id,
         label: "ほぼ自宅・オフィスのみ",
         description: "持ち運びはほとんどしない",
         value: "stationary_use",
@@ -1019,7 +1705,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[5].id,
+        questionId: existingQuestions[5].id,
         label: "週に数回持ち運び",
         description: "時々外出先で使用",
         value: "occasional_portable",
@@ -1027,7 +1713,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[5].id,
+        questionId: existingQuestions[5].id,
         label: "ほぼ毎日持ち運び",
         description: "常に携帯する必要がある",
         value: "daily_portable",
@@ -1037,7 +1723,7 @@ async function main() {
     // Screen size options
     prisma.questionOption.create({
       data: {
-        questionId: questions[6].id,
+        questionId: existingQuestions[6].id,
         label: "13インチ以下",
         description: "軽量・コンパクト重視",
         value: "screen_13inch_under",
@@ -1045,7 +1731,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[6].id,
+        questionId: existingQuestions[6].id,
         label: "14-15インチ",
         description: "バランスの良いサイズ",
         value: "screen_14_15inch",
@@ -1053,7 +1739,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[6].id,
+        questionId: existingQuestions[6].id,
         label: "16インチ以上",
         description: "大画面で作業効率重視",
         value: "screen_16inch_over",
@@ -1063,7 +1749,7 @@ async function main() {
     // Wearable feature options
     prisma.questionOption.create({
       data: {
-        questionId: questions[7].id,
+        questionId: existingQuestions[7].id,
         label: "健康管理機能",
         description: "心拍数・血中酸素・睡眠測定",
         value: "health_monitoring",
@@ -1071,7 +1757,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[7].id,
+        questionId: existingQuestions[7].id,
         label: "フィットネス機能",
         description: "運動記録・GPS・ワークアウト",
         value: "fitness_tracking",
@@ -1079,7 +1765,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[7].id,
+        questionId: existingQuestions[7].id,
         label: "スマート機能",
         description: "通知・決済・音楽操作",
         value: "smart_features",
@@ -1087,7 +1773,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[7].id,
+        questionId: existingQuestions[7].id,
         label: "デザイン・ファッション",
         description: "見た目の美しさ・アクセサリー性",
         value: "design_fashion",
@@ -1097,7 +1783,7 @@ async function main() {
     // Smartphone compatibility
     prisma.questionOption.create({
       data: {
-        questionId: questions[8].id,
+        questionId: existingQuestions[8].id,
         label: "iPhone",
         description: "Apple製スマートフォン",
         value: "iphone",
@@ -1105,7 +1791,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[8].id,
+        questionId: existingQuestions[8].id,
         label: "Android（Galaxy）",
         description: "Samsung Galaxy シリーズ",
         value: "android_galaxy",
@@ -1113,7 +1799,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[8].id,
+        questionId: existingQuestions[8].id,
         label: "Android（その他）",
         description: "Google Pixel、その他Android端末",
         value: "android_other",
@@ -1123,7 +1809,7 @@ async function main() {
     // Camera level options
     prisma.questionOption.create({
       data: {
-        questionId: questions[9].id,
+        questionId: existingQuestions[9].id,
         label: "初心者",
         description: "カメラを始めたばかり",
         value: "beginner",
@@ -1131,7 +1817,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[9].id,
+        questionId: existingQuestions[9].id,
         label: "中級者",
         description: "ある程度の撮影経験あり",
         value: "intermediate",
@@ -1139,7 +1825,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[9].id,
+        questionId: existingQuestions[9].id,
         label: "上級者・プロ",
         description: "本格的な撮影を行う",
         value: "advanced_pro",
@@ -1149,7 +1835,7 @@ async function main() {
     // Camera subject options
     prisma.questionOption.create({
       data: {
-        questionId: questions[10].id,
+        questionId: existingQuestions[10].id,
         label: "ポートレート・人物",
         description: "人物の撮影",
         value: "portrait",
@@ -1157,7 +1843,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[10].id,
+        questionId: existingQuestions[10].id,
         label: "風景・自然",
         description: "風景や自然の撮影",
         value: "landscape",
@@ -1165,7 +1851,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[10].id,
+        questionId: existingQuestions[10].id,
         label: "スポーツ・動き",
         description: "動きのある被写体",
         value: "sports_action",
@@ -1173,7 +1859,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[10].id,
+        questionId: existingQuestions[10].id,
         label: "マクロ・接写",
         description: "小さな被写体の接写",
         value: "macro",
@@ -1181,7 +1867,7 @@ async function main() {
     }),
     prisma.questionOption.create({
       data: {
-        questionId: questions[10].id,
+        questionId: existingQuestions[10].id,
         label: "動画撮影",
         description: "動画コンテンツの撮影",
         value: "video",
@@ -1199,10 +1885,12 @@ async function main() {
   console.log("Database seed completed successfully!");
   console.log("");
   console.log("Created data summary:");
-  console.log("- Categories: 8 (including hierarchy)");
+  console.log("- Categories: 12 (including gadget categories and hierarchy)");
   console.log("- Products: 12 (with Rakuten-style data)");
   console.log("- Tags: 8 (Rakuten marketplace tags)");
-  console.log("- Questions: 11 (across all categories)");
+  console.log(
+    "- Questions: 27 (16 for gadget categories + 11 for existing categories)"
+  );
   console.log("- Question Options: Multiple options per question");
   console.log("- Product Categories: Mapped all products to categories");
   console.log("- Product Tags: Applied relevant tags to all products");

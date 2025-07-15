@@ -68,10 +68,7 @@ export function ProfileInfo({ profile, onEdit }: ProfileInfoProps) {
             <span>{formatDate(profile.created_at)}</span>
           </div>
 
-          <Button
-            onClick={onEdit}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-          >
+          <Button onClick={onEdit} variant="default">
             <Settings className="h-4 w-4 mr-2" />
             プロフィール編集
           </Button>

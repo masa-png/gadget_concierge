@@ -177,7 +177,8 @@ export function ProfileEditForm({
             <Button
               type="submit"
               disabled={isPending}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="default"
+              className="flex-1"
             >
               {isPending ? (
                 <>
@@ -196,7 +197,7 @@ export function ProfileEditForm({
               onClick={onCancel}
               disabled={isPending}
               variant="outline"
-              className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1"
             >
               <X className="h-4 w-4 mr-2" />
               キャンセル

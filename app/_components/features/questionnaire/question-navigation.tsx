@@ -2,6 +2,7 @@
 
 import React from "react";
 import { ChevronRight, ChevronLeft } from "lucide-react";
+import { Button } from "@/app/_components/ui/button";
 
 interface QuestionNavigationProps {
   canGoPrevious: boolean;
@@ -20,39 +21,25 @@ const QuestionNavigation: React.FC<QuestionNavigationProps> = ({
 }) => {
   return (
     <div className="w-full flex justify-between items-center gap-4">
-      <button
+      <Button
         onClick={onPrevious}
         disabled={!canGoPrevious}
-        className={`
-          flex items-center px-6 py-3 rounded-lg font-medium transition-colors
-          bg-gray-100
-          ${
-            canGoPrevious
-              ? "text-gray-600 hover:text-gray-800 hover:bg-gray-200"
-              : "text-gray-400 cursor-not-allowed"
-          }
-        `}
+        variant={canGoPrevious ? "outline" : "ghost"}
+        className="flex items-center px-6 py-3"
       >
         <ChevronLeft className="w-5 h-5 mr-2" />
         前の質問
-      </button>
+      </Button>
 
-      <button
+      <Button
         onClick={onNext}
         disabled={!canGoNext}
-        className={`
-          flex items-center px-8 py-3 rounded-lg font-medium transition-all duration-200
-          shadow-sm
-          ${
-            canGoNext
-              ? "bg-blue-600 text-white hover:bg-blue-700"
-              : "bg-violet-100 text-violet-400 cursor-not-allowed"
-          }
-        `}
+        variant="default"
+        className="flex items-center px-8 py-3"
       >
         {isLastQuestion ? "診断完了" : "次の質問"}
         <ChevronRight className="w-5 h-5 ml-2" />
-      </button>
+      </Button>
     </div>
   );
 };

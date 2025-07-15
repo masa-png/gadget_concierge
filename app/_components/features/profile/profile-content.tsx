@@ -6,6 +6,7 @@ import { ProfileEditForm } from "./profile-edit-form";
 import { Button } from "@/app/_components/ui/button";
 import { User } from "lucide-react";
 import type { ProfileSelectData } from "@/lib/validations/profile";
+import HistoryList from "./history-list";
 
 interface ProfileContentProps {
   initialProfile: ProfileSelectData;
@@ -37,10 +38,7 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
           <p className="text-gray-600 mb-6">
             {error.message || "プロフィールの取得に失敗しました"}
           </p>
-          <Button
-            onClick={() => mutateProfile()}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-          >
+          <Button onClick={() => mutateProfile()} variant="default">
             再試行
           </Button>
         </div>
@@ -77,35 +75,10 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
         )}
       </div>
 
-      {/* 最近のアクティビティ */}
+      {/* 診断履歴 */}
       <div className="max-w-4xl mx-auto mt-12">
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">
-              最近のアクティビティ
-            </h2>
-            <Button
-              variant="ghost"
-              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-            >
-              履歴を全て見る
-            </Button>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <div className="flex-1">
-                <p className="text-gray-900 font-medium">
-                  GaN充電器の診断を完了
-                </p>
-                <p className="text-gray-500 text-sm">2025年5月20日</p>
-              </div>
-              <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
-                診断
-              </span>
-            </div>
-          </div>
+          <HistoryList />
         </div>
       </div>
     </>

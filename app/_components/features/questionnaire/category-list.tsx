@@ -5,7 +5,6 @@ interface Category {
   id: string;
   name: string;
   description: string;
-  icon: React.ReactNode;
 }
 
 interface CategoryListProps {
@@ -27,7 +26,6 @@ const CategoryList: React.FC<CategoryListProps> = ({
           id={category.id}
           name={category.name}
           description={category.description}
-          icon={category.icon}
           selected={selectedCategory === category.id}
           onClick={onCategorySelect}
         />
