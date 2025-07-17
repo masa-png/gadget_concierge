@@ -7,7 +7,11 @@ import { ApiResponse, ErrorCodes } from "@/lib/validations/api";
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 // レート制限チェック
-export function rateLimit(identifier: string, maxRequests = 100, windowMs = 60000) {
+export function rateLimit(
+  identifier: string,
+  maxRequests = 100,
+  windowMs = 60000
+) {
   const now = Date.now();
   const record = rateLimitMap.get(identifier);
 
@@ -28,13 +32,15 @@ export function rateLimit(identifier: string, maxRequests = 100, windowMs = 6000
 export function createErrorResponse(
   error: string,
   status: number = 400,
-  code?: string
+  code?: string,
+  extra?: Record<string, any>
 ): NextResponse<ApiResponse> {
   return NextResponse.json(
     {
       success: false,
       error,
       ...(code && { code }),
+      ...(extra && extra),
     },
     { status }
   );
@@ -57,13 +63,17 @@ export function createSuccessResponse<T>(
 }
 
 // 認証チェックミドルウェア
-export async function requireAuth(request: NextRequest): Promise<
-  | { success: true; user: any }
-  | { success: false; response: NextResponse }
+export async function requireAuth(
+  request: NextRequest
+): Promise<
+  { success: true; user: any } | { success: false; response: NextResponse }
 > {
   try {
     const supabase = await createClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
 
     if (error || !user) {
       return {
@@ -95,7 +105,9 @@ export function validateRequest<T extends z.ZodSchema>(
   schema: T,
   source: "body" | "query" = "body"
 ) {
-  return async (request: NextRequest): Promise<
+  return async (
+    request: NextRequest
+  ): Promise<
     | { success: true; data: z.infer<T> }
     | { success: false; response: NextResponse }
   > => {

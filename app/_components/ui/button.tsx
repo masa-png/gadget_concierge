@@ -23,7 +23,7 @@ export function Button({
 
   const variantClasses = {
     default:
-      "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-blue-800 active:scale-95",
+      "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-purple-700 active:scale-95",
     outline:
       "border-2 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400 active:scale-95",
     ghost: "text-gray-700 hover:bg-gray-100 active:scale-95",
