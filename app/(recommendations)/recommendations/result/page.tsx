@@ -9,12 +9,19 @@ import { recommendationApi, ApiError } from "@/lib/api-client";
 
 interface Recommendation {
   id: string;
-  name: string;
-  description: string;
-  price: number;
-  imageUrl?: string;
-  reason: string;
+  rank: number;
   score: number;
+  reason: string;
+  product: {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    rating: number;
+    features: string;
+    rakuten_url: string;
+    image_url: string;
+  };
 }
 
 interface ResultPageProps {
@@ -29,7 +36,6 @@ const ResultPage: React.FC<ResultPageProps> = () => {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [recommendationId, setRecommendationId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!sessionId) {
@@ -38,39 +44,15 @@ const ResultPage: React.FC<ResultPageProps> = () => {
       return;
     }
 
-    // レコメンド生成と取得
-    const generateAndFetchRecommendations = async () => {
+    // レコメンド取得
+    const fetchRecommendations = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        // 1. レコメンド生成
-        const generateResponse = await recommendationApi.generate(sessionId);
-        const newRecommendationId = generateResponse.recommendationId;
-        setRecommendationId(newRecommendationId);
-
-        // 2. レコメンド結果を取得（ポーリング）
-        let attempts = 0;
-        const maxAttempts = 30; // 最大30回試行（30秒）
-
-        const pollRecommendations = async (): Promise<Recommendation[]> => {
-          const response = await recommendationApi.get(newRecommendationId);
-
-          if (response.status === "completed") {
-            return response.recommendations;
-          } else if (response.status === "failed") {
-            throw new Error("レコメンド生成に失敗しました");
-          } else if (attempts >= maxAttempts) {
-            throw new Error("レコメンド生成がタイムアウトしました");
-          }
-
-          attempts++;
-          await new Promise((resolve) => setTimeout(resolve, 1000)); // 1秒待機
-          return pollRecommendations();
-        };
-
-        const recommendations = await pollRecommendations();
-        setRecommendations(recommendations);
+        // レコメンド結果を取得
+        const response = await recommendationApi.get(sessionId);
+        setRecommendations(response.data.recommendations);
       } catch (err) {
         console.error("レコメンド取得エラー:", err);
         setError(
@@ -85,7 +67,7 @@ const ResultPage: React.FC<ResultPageProps> = () => {
       }
     };
 
-    generateAndFetchRecommendations();
+    fetchRecommendations();
   }, [sessionId]);
 
   const handleNewQuestionnaire = () => {
@@ -175,10 +157,10 @@ const ResultPage: React.FC<ResultPageProps> = () => {
                 <div className="flex flex-col md:flex-row gap-6">
                   {/* Image */}
                   <div className="w-full md:w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center">
-                    {recommendation.imageUrl ? (
+                    {recommendation.product.image_url ? (
                       <img
-                        src={recommendation.imageUrl}
-                        alt={recommendation.name}
+                        src={recommendation.product.image_url}
+                        alt={recommendation.product.name}
                         className="w-full h-full object-cover rounded-lg"
                       />
                     ) : (
@@ -191,7 +173,7 @@ const ResultPage: React.FC<ResultPageProps> = () => {
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                          {recommendation.name}
+                          {recommendation.product.name}
                         </h3>
                         <div className="text-sm text-gray-500 mb-2">
                           マッチ度: {Math.round(recommendation.score * 100)}%
@@ -199,13 +181,13 @@ const ResultPage: React.FC<ResultPageProps> = () => {
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold text-blue-600">
-                          {formatPrice(recommendation.price)}
+                          {formatPrice(recommendation.product.price)}
                         </div>
                       </div>
                     </div>
 
                     <p className="text-gray-600 mb-4">
-                      {recommendation.description}
+                      {recommendation.product.description}
                     </p>
 
                     {/* Reason */}
@@ -224,11 +206,29 @@ const ResultPage: React.FC<ResultPageProps> = () => {
           ) : (
             <Card className="p-8 text-center">
               <div className="text-gray-500 text-lg mb-4">
-                申し訳ございませんが、現在おすすめのガジェットが見つかりませんでした。
+                診断が完了しました！
               </div>
-              <p className="text-gray-400">
-                別のカテゴリで診断をお試しください。
+              <p className="text-gray-700 mb-4">
+                レコメンド機能は現在開発中です。しばらくお待ちください。
               </p>
+
+              <div className="space-y-2">
+                <Button
+                  onClick={handleNewQuestionnaire}
+                  variant="default"
+                  size="lg"
+                  className="w-full"
+                >
+                  新しい診断を開始
+                </Button>
+                <Button
+                  onClick={handleViewHistory}
+                  variant="outline"
+                  className="w-full"
+                >
+                  履歴を見る
+                </Button>
+              </div>
             </Card>
           )}
         </div>

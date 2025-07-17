@@ -19,7 +19,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
     <button
       onClick={() => onClick(id)}
       className={`
-        relative w-full text-left px-6 py-7 border rounded-xl transition-all duration-200
+        relative w-full text-left px-6 py-6 border rounded-xl transition-all duration-200
         bg-white
         ${
           selected
@@ -29,9 +29,14 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
         focus:outline-none focus:ring-2 focus:ring-blue-200
       `}
     >
-      <div className="flex-1">
-        <div className="font-semibold text-gray-900 text-lg mb-1">{name}</div>
-        <div className="text-sm text-gray-500">{description}</div>
+      <div className="flex items-center space-x-4">
+        <div className="text-3xl text-gray-600">
+          {/* アイコンは後で追加可能 */}
+        </div>
+        <div className="flex-1">
+          <div className="font-semibold text-gray-900 text-xl mb-1">{name}</div>
+          <div className="text-sm text-gray-600">{description}</div>
+        </div>
       </div>
       {selected && (
         <div className="absolute top-4 right-4">

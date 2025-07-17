@@ -109,8 +109,27 @@ export const sessionApi = {
 
   // セッション完了
   complete: (sessionId: string) =>
-    apiCall<{ success: boolean }>(`/sessions/${sessionId}/complete`, {
-      method: "POST",
+    apiCall<{
+      data: {
+        session: {
+          id: string;
+          categoryId: string;
+          categoryName: string;
+          status: string;
+          started_at: string;
+          completed_at: string;
+          answersCount: number;
+        };
+        history: {
+          id: string;
+          title: string;
+          description: string;
+          created_at: string;
+        };
+        message: string;
+      };
+    }>(`/sessions/${sessionId}/complete`, {
+      method: "PUT",
     }),
 
   // セッション再開
@@ -221,22 +240,35 @@ export const recommendationApi = {
     }),
 
   // レコメンド結果取得
-  get: (recommendationId: string) =>
+  get: (sessionId: string) =>
     apiCall<{
-      id: string;
-      sessionId: string;
-      status: string;
-      recommendations: Array<{
-        id: string;
-        name: string;
-        description: string;
-        price: number;
-        imageUrl?: string;
-        reason: string;
-        score: number;
-      }>;
-      createdAt: string;
-    }>(`/recommendations/${recommendationId}`),
+      data: {
+        session: {
+          id: string;
+          categoryId: string;
+          categoryName: string;
+          status: string;
+          completed_at: string;
+        };
+        recommendations: Array<{
+          id: string;
+          rank: number;
+          score: number;
+          reason: string;
+          product: {
+            id: string;
+            name: string;
+            description: string;
+            price: number;
+            rating: number;
+            features: string;
+            rakuten_url: string;
+            image_url: string;
+          };
+        }>;
+        total: number;
+      };
+    }>(`/recommendations/${sessionId}`),
 };
 
 // 履歴関連API

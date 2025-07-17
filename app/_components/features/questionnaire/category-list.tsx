@@ -19,7 +19,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
   onCategorySelect,
 }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
+    <div className="space-y-4">
       {categories.map((category) => (
         <CategoryCard
           key={category.id}

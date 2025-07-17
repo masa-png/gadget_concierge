@@ -145,26 +145,23 @@ const CategorySelection: React.FC<CategorySelectionProps> = ({
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#f5f8fc] flex flex-col justify-center items-center">
-      {/* Progress Bar */}
-      <div className="w-full max-w-2xl mt-8">
-        <QuestionProgress
-          current={currentStep}
-          total={totalSteps}
-          percentage={(currentStep / totalSteps) * 100}
-        />
-      </div>
+    <div className="min-h-screen w-full bg-[#f5f8fc] flex justify-center">
+      <div className="w-full max-w-2xl px-6 py-8">
+        {/* Progress Bar */}
+        <div className="mb-8">
+          <QuestionProgress
+            current={currentStep}
+            total={totalSteps}
+            percentage={(currentStep / totalSteps) * 100}
+          />
+        </div>
 
-      {/* Main Card */}
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lg px-8 py-10 mt-6 mb-8">
         {/* Question Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 tracking-tight">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
             どのようなガジェットをお探しですか？
           </h1>
-          <p className="text-base md:text-lg text-gray-500">
-            カテゴリを選択してください
-          </p>
+          <p className="text-lg text-gray-600">カテゴリを選択してください</p>
         </div>
 
         {/* Category Options */}
@@ -173,17 +170,17 @@ const CategorySelection: React.FC<CategorySelectionProps> = ({
           selectedCategory={selectedCategory}
           onCategorySelect={handleCategorySelect}
         />
-      </div>
 
-      {/* Navigation Bar */}
-      <div className="w-full max-w-2xl bg-white rounded-xl shadow flex items-center px-6 py-4 mb-8">
-        <QuestionNavigation
-          canGoPrevious={true}
-          canGoNext={!!selectedCategory}
-          isLastQuestion={false}
-          onPrevious={onPrevious}
-          onNext={handleNext}
-        />
+        {/* Navigation Bar */}
+        <div className="mt-8">
+          <QuestionNavigation
+            canGoPrevious={true}
+            canGoNext={!!selectedCategory}
+            isLastQuestion={false}
+            onPrevious={onPrevious}
+            onNext={handleNext}
+          />
+        </div>
       </div>
     </div>
   );

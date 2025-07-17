@@ -89,12 +89,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       orderBy: { rank: "asc" },
     });
 
+    // レコメンドデータが存在しない場合は空の配列を返す
     if (recommendations.length === 0) {
-      return createErrorResponse(
-        "このセッションのレコメンドが見つかりません",
-        404,
-        ErrorCodes.NOT_FOUND
-      );
+      const responseData = {
+        session: {
+          id: session.id,
+          categoryId: session.categoryId,
+          categoryName: category?.name || "不明なカテゴリ",
+          status: session.status,
+          completed_at: session.completed_at,
+        },
+        recommendations: [],
+        total: 0,
+      };
+
+      return setSecurityHeaders(createSuccessResponse(responseData));
     }
 
     // レスポンスデータを整形

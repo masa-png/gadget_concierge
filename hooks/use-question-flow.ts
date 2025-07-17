@@ -307,12 +307,14 @@ const useQuestionFlow = () => {
 
     try {
       // APIでセッション完了処理
-      await sessionApi.complete(state.sessionId);
+      const response = await sessionApi.complete(state.sessionId);
 
       setState((prev) => ({
         ...prev,
         isCompleted: true,
       }));
+
+      return response;
     } catch (error) {
       console.error("セッション完了エラー:", error);
       if (error instanceof ApiError) {

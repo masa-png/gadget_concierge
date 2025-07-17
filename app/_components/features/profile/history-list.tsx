@@ -36,7 +36,7 @@ const HistoryList: React.FC = () => {
   };
 
   const handleViewResult = (sessionId: string) => {
-    router.push(`/questionnaire/result?sessionId=${sessionId}`);
+    router.push(`/recommendations/result?sessionId=${sessionId}`);
   };
 
   const handleResume = (sessionId: string) => {
