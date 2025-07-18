@@ -5,11 +5,9 @@ const footerLinks = {
   service: [
     { href: "/questionnaire", label: "ガジェット診断" },
     { href: "/categories", label: "カテゴリ検索" },
-    { href: "/chat", label: "AIチャット" },
     { href: "/recommendations", label: "おすすめ製品" },
   ],
   analysis: [
-    { href: "/dashboard", label: "ダッシュボード" },
     { href: "/profile", label: "プロフィール" },
     { href: "/profile/history", label: "利用履歴" },
   ],
@@ -117,7 +115,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="my-8 h-px bg-gray-700" />
+        <div className="my-4 h-px bg-gray-700" />
 
         {/* コピーライト */}
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
