@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 // 型定義のインポート
 import { Question, Answer } from "@/lib/types/questionnaire";
@@ -19,6 +19,16 @@ const RangeQuestion: React.FC<RangeQuestionProps> = ({
   isRequired,
 }) => {
   const [value, setValue] = useState(answer?.range_value || 5);
+
+  // 初期値を設定（コンポーネントマウント時に回答がない場合）
+  useEffect(() => {
+    if (!answer) {
+      onAnswerChange({
+        questionId: question.id,
+        range_value: 5,
+      });
+    }
+  }, [question.id, answer, onAnswerChange]);
 
   const handleValueChange = (newValue: number) => {
     setValue(newValue);

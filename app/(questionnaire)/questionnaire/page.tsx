@@ -1,19 +1,20 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import CategorySelection from "@/app/_components/features/questionnaire/category-selection";
 
 const QuestionnairePage: React.FC = () => {
   const router = useRouter();
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
 
   const handleCategorySelect = (categoryId: string) => {
-    router.push(`/questionnaire/${categoryId}`);
+    setSelectedCategoryId(categoryId);
   };
 
-  const handleNext = () => {
-    // カテゴリ選択後の処理は handleCategorySelect で行われるため、
-    // ここでは何もしない
+  const handleNext = (sessionId: string) => {
+    // セッション作成後、質問ページに遷移
+    router.push(`/questionnaire/${selectedCategoryId}?sessionId=${sessionId}`);
   };
 
   const handlePrevious = () => {

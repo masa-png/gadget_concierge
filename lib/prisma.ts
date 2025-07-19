@@ -10,6 +10,8 @@ export const prisma =
   global.prismaInstance ||
   new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+    // データベース接続時のタイムゾーンを設定
+    datasourceUrl: process.env.DATABASE_URL + (process.env.DATABASE_URL?.includes('?') ? '&' : '?') + 'timezone=Asia/Tokyo',
   })
 
 // 開発環境でのみグローバル変数にPrismaClientを保存

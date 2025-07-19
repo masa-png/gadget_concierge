@@ -5,7 +5,12 @@ import CategoryList from "./category-list";
 import QuestionProgress from "./question-progress";
 import QuestionNavigation from "./question-navigation";
 import { Button } from "@/app/_components/ui/button";
-import { categoryApi, ApiError, isAuthError } from "@/lib/api-client";
+import {
+  categoryApi,
+  sessionApi,
+  ApiError,
+  isAuthError,
+} from "@/lib/api-client";
 import { useAuth } from "@/app/_components/shared/providers/auth-provider";
 
 interface Category {
@@ -16,7 +21,7 @@ interface Category {
 
 interface CategorySelectionProps {
   onCategorySelect: (categoryId: string) => void;
-  onNext: () => void;
+  onNext: (sessionId: string) => void;
   onPrevious: () => void;
   currentStep: number;
   totalSteps: number;
@@ -33,6 +38,7 @@ const CategorySelection: React.FC<CategorySelectionProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // カテゴリデータを取得
@@ -84,9 +90,33 @@ const CategorySelection: React.FC<CategorySelectionProps> = ({
     onCategorySelect(categoryId);
   };
 
-  const handleNext = () => {
-    if (selectedCategory) {
-      onNext();
+  const handleNext = async () => {
+    if (!selectedCategory) return;
+
+    try {
+      setIsCreatingSession(true);
+      setError(null);
+
+      console.log("セッションを作成中...", selectedCategory);
+      const response = await sessionApi.create(selectedCategory);
+      const sessionId = response.data.session.id;
+
+      console.log("セッション作成完了:", sessionId);
+      onNext(sessionId);
+    } catch (error) {
+      console.error("セッション作成エラー:", error);
+
+      if (isAuthError(error)) {
+        setError("ログインが必要です。ページを再読み込みしてください。");
+      } else {
+        setError(
+          error instanceof ApiError
+            ? error.message
+            : "セッションの作成に失敗しました"
+        );
+      }
+    } finally {
+      setIsCreatingSession(false);
     }
   };
 
@@ -175,10 +205,12 @@ const CategorySelection: React.FC<CategorySelectionProps> = ({
         <div className="mt-8">
           <QuestionNavigation
             canGoPrevious={true}
-            canGoNext={!!selectedCategory}
+            canGoNext={!!selectedCategory && !isCreatingSession}
             isLastQuestion={false}
             onPrevious={onPrevious}
             onNext={handleNext}
+            isLoading={isCreatingSession}
+            loadingText="質問を準備中..."
           />
         </div>
       </div>

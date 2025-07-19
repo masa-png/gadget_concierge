@@ -9,6 +9,7 @@ import {
 import { Button } from "@/app/_components/ui/button";
 import { MessageSquare, Sparkles, Settings, Calendar } from "lucide-react";
 import type { ProfileSelectData } from "@/lib/validations/profile";
+import { formatToJapanDate } from "@/lib/utils/date";
 
 interface ProfileInfoProps {
   profile: ProfileSelectData;
@@ -21,23 +22,7 @@ export function ProfileInfo({ profile, onEdit }: ProfileInfoProps) {
   };
 
   const formatDate = (date: Date) => {
-    try {
-      return (
-        new Intl.DateTimeFormat("ja-JP", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        }).format(new Date(date)) + "から利用開始"
-      );
-    } catch (error) {
-      return (
-        new Date(date).toLocaleDateString("ja-JP", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        }) + "から利用開始"
-      );
-    }
+    return formatToJapanDate(date) + "から利用開始";
   };
 
   return (
