@@ -1,344 +1,244 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-
-// 型定義のインポート
-import {
-  QuestionType,
-  Question,
-  Answer,
-  QuestionFlowState,
-} from "@/lib/types/questionnaire";
-
-// APIクライアントのインポート
-import {
-  sessionApi,
-  questionApi,
-  answerApi,
-  ApiError,
-  isAuthError,
-} from "@/lib/api-client";
-
-// 認証フックのインポート
+import { useCallback, useEffect } from "react";
+import useSWR from "swr";
 import { useAuth } from "@/app/_components/shared/providers/auth-provider";
+import { useQuestionFlowState } from "./use-question-flow-state";
+import { useQuestionApi } from "./use-question-api";
+import { useQuestionNavigation } from "./use-question-navigation";
+import { useQuestionValidation } from "./use-question-validation";
+import type { Answer } from "@/lib/types/questionnaire";
+import { convertApiQuestionsToClient } from "@/lib/types/questionnaire-api";
+import {
+  handleQuestionnaireError,
+  createQuestionnaireError,
+} from "@/lib/errors/questionnaire-error";
+
+// 質問データのfetcher
+const questionsFetcher = async (categoryId: string) => {
+  const { questionApi } = await import("@/lib/api-client");
+  const response = await questionApi.getByCategory(categoryId);
+
+  return convertApiQuestionsToClient(response);
+};
 
 // 質問フロー管理フック
 const useQuestionFlow = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { state, updateState, resetState, setAnswer } = useQuestionFlowState();
+  const { createSession, saveAnswer, completeSession } = useQuestionApi();
+  const {
+    getCurrentQuestion,
+    getCurrentAnswer,
+    getProgress,
+    canGoNext,
+    canGoPrevious,
+    isCompleted,
+  } = useQuestionNavigation();
+  const { validateAnswer, getValidationError } = useQuestionValidation();
 
-  const [state, setState] = useState<QuestionFlowState>({
-    sessionId: null,
-    categoryId: null,
-    questions: [],
-    currentQuestionIndex: 0,
-    answers: new Map(),
-    isLoading: false,
-    error: null,
-    canGoNext: false,
-    canGoPrevious: false,
-    isCompleted: false,
-  });
-
-  // 現在の質問を取得
-  const getCurrentQuestion = useCallback((): Question | null => {
-    if (
-      !state.questions ||
-      !Array.isArray(state.questions) ||
-      state.questions.length === 0 ||
-      state.currentQuestionIndex >= state.questions.length
-    ) {
-      return null;
+  // SWRで質問データを管理
+  const {
+    data: questions,
+    error: questionsError,
+    mutate: mutateQuestions,
+  } = useSWR(
+    state.categoryId ? `questions-${state.categoryId}` : null,
+    () => (state.categoryId ? questionsFetcher(state.categoryId) : null),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 300000, // 5分間キャッシュ
     }
-    return state.questions[state.currentQuestionIndex];
-  }, [state.questions, state.currentQuestionIndex]);
+  );
 
-  // 現在の質問の回答を取得
-  const getCurrentAnswer = useCallback((): Answer | null => {
-    const currentQuestion = getCurrentQuestion();
-    if (!currentQuestion) return null;
-
-    // 安全なアクセスのため、answersが存在することを確認
-    if (!state.answers || typeof state.answers.get !== "function") {
-      return null;
+  // 質問データが取得できたら状態を更新
+  useEffect(() => {
+    if (questions && Array.isArray(questions)) {
+      updateState({ questions, isLoading: false });
+    } else if (questionsError) {
+      const questionnaireError = handleQuestionnaireError(questionsError);
+      updateState({
+        isLoading: false,
+        error: questionnaireError.message,
+      });
     }
-
-    return state.answers.get(currentQuestion.id) || null;
-  }, [getCurrentQuestion, state.answers]);
-
-  // 現在の質問のバリデーション
-  const validateCurrentQuestion = useCallback((): boolean => {
-    const currentQuestion = getCurrentQuestion();
-    if (!currentQuestion) return false;
-
-    const currentAnswer = getCurrentAnswer();
-
-    // 必須質問の場合は回答が必要
-    if (currentQuestion.is_required && !currentAnswer) {
-      return false;
-    }
-
-    // 質問タイプに応じたバリデーション
-    switch (currentQuestion.type) {
-      case "SINGLE_CHOICE":
-        return !!currentAnswer?.questionOptionId;
-      case "MULTIPLE_CHOICE":
-        return !!(
-          currentAnswer?.questionOptionIds &&
-          currentAnswer.questionOptionIds.length > 0
-        );
-      case "RANGE":
-        return currentAnswer?.range_value !== undefined;
-      case "TEXT":
-        return !!(
-          currentAnswer?.text_value &&
-          currentAnswer.text_value.trim().length > 0
-        );
-      default:
-        return false;
-    }
-  }, [getCurrentQuestion, getCurrentAnswer]);
-
-  // 進捗情報を取得
-  const getProgress = useCallback(() => {
-    const current = state.currentQuestionIndex + 1;
-    const total =
-      state.questions && Array.isArray(state.questions)
-        ? state.questions.length
-        : 0;
-    const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
-    return { current, total, percentage };
-  }, [state.currentQuestionIndex, state.questions]);
-
-  // ナビゲーション状態を更新
-  const updateNavigationState = useCallback(() => {
-    const questionsLength =
-      state.questions && Array.isArray(state.questions)
-        ? state.questions.length
-        : 0;
-
-    const canGoNext =
-      validateCurrentQuestion() ||
-      state.currentQuestionIndex < questionsLength - 1;
-    const canGoPrevious = state.currentQuestionIndex > 0;
-    const isCompleted =
-      state.currentQuestionIndex >= questionsLength && questionsLength > 0;
-
-    setState((prev) => ({
-      ...prev,
-      canGoNext,
-      canGoPrevious,
-      isCompleted,
-    }));
-  }, [state.currentQuestionIndex, state.questions, validateCurrentQuestion]);
+  }, [questions, questionsError, updateState]);
 
   // フローを初期化
   const initializeFlow = useCallback(
     async (categoryId: string, sessionId?: string) => {
       // 認証状態を確認
       if (authLoading) {
-        setState((prev) => ({
-          ...prev,
-          error: "認証状態を確認中です...",
-        }));
+        const error = createQuestionnaireError.authLoading();
+        updateState({ error: error.message });
         return;
       }
 
       if (!isAuthenticated) {
-        setState((prev) => ({
-          ...prev,
-          error: "ログインが必要です",
-        }));
+        const error = createQuestionnaireError.authRequired();
+        updateState({ error: error.message });
         return;
       }
 
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+      updateState({ isLoading: true, error: null, categoryId });
 
       try {
-        let actualSessionId = sessionId;
-
-        // セッションIDがない場合は新規作成
-        if (!actualSessionId) {
-          const sessionResponse = await sessionApi.create(categoryId);
-          actualSessionId = sessionResponse.data.session.id;
-        }
-
-        console.log("セッションID:", actualSessionId);
-
-        // 質問データを取得
-        const questionsResponse = await questionApi.getByCategory(categoryId);
-
-        console.log("取得した質問データ:", questionsResponse);
-
-        // APIレスポンスの安全性を確認
-        if (
-          !questionsResponse?.data ||
-          !Array.isArray(questionsResponse.data.questions)
-        ) {
-          throw new Error("質問データの取得に失敗しました");
-        }
-
-        // APIレスポンスをQuestion型に変換
-        const questions: Question[] = questionsResponse.data.questions.map(
-          (q) => ({
-            id: q.id,
-            text: q.text,
-            description: q.description,
-            type: q.type as QuestionType,
-            is_required: q.is_required,
-            options: Array.isArray(q.options)
-              ? q.options.map((opt) => ({
-                  id: opt.id,
-                  label: opt.label,
-                  description: opt.description,
-                  value: opt.value,
-                }))
-              : [],
-          })
-        );
-
-        setState((prev) => ({
-          ...prev,
-          sessionId: actualSessionId,
-          categoryId,
-          questions,
-          currentQuestionIndex: 0,
-          isLoading: false,
-          error: null,
-        }));
-      } catch (error) {
-        console.error("質問フロー初期化エラー:", error);
-
-        if (isAuthError(error)) {
-          setState((prev) => ({
-            ...prev,
-            isLoading: false,
-            error: "ログインが必要です。ページを再読み込みしてください。",
-          }));
-        } else if (error instanceof ApiError && error.status === 429) {
-          setState((prev) => ({
-            ...prev,
-            isLoading: false,
-            error:
-              "リクエストが多すぎます。しばらく待ってから再度お試しください。",
-          }));
-        } else if (error instanceof TypeError) {
-          setState((prev) => ({
-            ...prev,
-            isLoading: false,
-            error:
-              "サーバーに接続できません。ネットワークやサーバー状態を確認してください。",
-          }));
+        // セッションIDがある場合のみセット（新規作成は次の質問ボタン押下時に行う）
+        if (sessionId) {
+          updateState({
+            sessionId,
+            categoryId,
+            currentQuestionIndex: 0,
+            error: null,
+          });
         } else {
-          setState((prev) => ({
-            ...prev,
-            isLoading: false,
-            error:
-              error instanceof ApiError
-                ? error.message
-                : "予期しないエラーが発生しました",
-          }));
+          updateState({
+            categoryId,
+            currentQuestionIndex: 0,
+            error: null,
+          });
         }
+
+        // SWRで質問データを取得開始
+        mutateQuestions();
+      } catch (error) {
+        const questionnaireError = handleQuestionnaireError(error);
+        updateState({ isLoading: false, error: questionnaireError.message });
       }
     },
-    [isAuthenticated, authLoading]
+    [isAuthenticated, authLoading, updateState, mutateQuestions]
   );
 
+  // セッションを作成（必要に応じて）
+  const ensureSession = useCallback(async () => {
+    // セッションIDが既にある場合はそれを使用
+    if (state.sessionId) {
+      return state.sessionId;
+    }
+    
+    // セッションIDがない場合は新規作成
+    if (state.categoryId) {
+      const { sessionId: newSessionId } = await createSession(state.categoryId);
+      updateState({ sessionId: newSessionId });
+      return newSessionId;
+    }
+    
+    return null;
+  }, [state.sessionId, state.categoryId, createSession, updateState]);
+
   // 回答を保存
-  const saveAnswer = useCallback(
+  const saveAnswerToApi = useCallback(
     async (answer: Answer) => {
-      if (!state.sessionId) {
-        console.error("セッションIDが設定されていません");
-        return;
-      }
-
       try {
-        // APIに回答を保存
-        await answerApi.save(state.sessionId, {
-          questionId: answer.questionId,
-          questionOptionId: answer.questionOptionId,
-          questionOptionIds: answer.questionOptionIds,
-          range_value: answer.range_value,
-          text_value: answer.text_value,
-        });
-
-        // ローカル状態を更新
-        setState((prev) => ({
-          ...prev,
-          answers: new Map(prev.answers.set(answer.questionId, answer)),
-        }));
-      } catch (error) {
-        console.error("回答保存エラー:", error);
-        if (error instanceof ApiError) {
-          throw error;
+        const sessionId = await ensureSession();
+        if (!sessionId) {
+          throw createQuestionnaireError.sessionNotFound();
         }
-        throw new Error("回答の保存に失敗しました");
+
+        await saveAnswer(sessionId, answer);
+        setAnswer(answer.questionId, answer);
+      } catch (error) {
+        throw handleQuestionnaireError(error);
       }
     },
-    [state.sessionId]
+    [ensureSession, saveAnswer, setAnswer]
   );
 
   // 次の質問へ
   const goToNext = useCallback(() => {
-    const questionsLength =
-      state.questions && Array.isArray(state.questions)
-        ? state.questions.length
-        : 0;
-    if (state.currentQuestionIndex < questionsLength - 1) {
-      setState((prev) => ({
-        ...prev,
-        currentQuestionIndex: prev.currentQuestionIndex + 1,
-      }));
+    if (canGoNext(state)) {
+      updateState({ currentQuestionIndex: state.currentQuestionIndex + 1 });
     }
-  }, [state.currentQuestionIndex, state.questions]);
+  }, [state, canGoNext, updateState]);
 
   // 前の質問へ
   const goToPrevious = useCallback(() => {
-    if (state.currentQuestionIndex > 0) {
-      setState((prev) => ({
-        ...prev,
-        currentQuestionIndex: prev.currentQuestionIndex - 1,
-      }));
+    if (canGoPrevious(state)) {
+      updateState({ currentQuestionIndex: state.currentQuestionIndex - 1 });
     }
-  }, [state.currentQuestionIndex]);
+  }, [state, canGoPrevious, updateState]);
 
   // フローを完了
   const completeFlow = useCallback(async () => {
-    if (!state.sessionId) return;
-
     try {
-      // APIでセッション完了処理
-      const response = await sessionApi.complete(state.sessionId);
+      const sessionId = await ensureSession();
+      if (!sessionId) {
+        throw createQuestionnaireError.sessionNotFound();
+      }
 
-      setState((prev) => ({
-        ...prev,
-        isCompleted: true,
-      }));
-
+      const response = await completeSession(sessionId);
+      updateState({ isCompleted: true });
       return response;
     } catch (error) {
-      console.error("セッション完了エラー:", error);
-      if (error instanceof ApiError) {
-        throw error;
-      }
-      throw new Error("セッションの完了に失敗しました");
+      throw handleQuestionnaireError(error);
     }
-  }, [state.sessionId]);
+  }, [ensureSession, completeSession, updateState]);
+
+  // 現在の質問のバリデーション
+  const validateCurrentQuestion = useCallback(() => {
+    const currentQuestion = getCurrentQuestion(state);
+    if (!currentQuestion) return false;
+
+    const currentAnswer = getCurrentAnswer(state);
+    return validateAnswer(currentQuestion, currentAnswer);
+  }, [state, getCurrentQuestion, getCurrentAnswer, validateAnswer]);
+
+  // 現在の質問のバリデーションエラーを取得
+  const getCurrentValidationError = useCallback(() => {
+    const currentQuestion = getCurrentQuestion(state);
+    if (!currentQuestion) return null;
+
+    const currentAnswer = getCurrentAnswer(state);
+    return getValidationError(currentQuestion, currentAnswer);
+  }, [state, getCurrentQuestion, getCurrentAnswer, getValidationError]);
 
   // ナビゲーション状態の更新（回答やインデックス変更時）
   useEffect(() => {
-    updateNavigationState();
-  }, [updateNavigationState]);
+    const nextCanGoNext = canGoNext(state);
+    const nextCanGoPrevious = canGoPrevious(state);
+    const nextIsCompleted = isCompleted(state);
+
+    updateState({
+      canGoNext: nextCanGoNext,
+      canGoPrevious: nextCanGoPrevious,
+      isCompleted: nextIsCompleted,
+    });
+  }, [
+    state.currentQuestionIndex,
+    state.answers,
+    state.questions,
+    canGoNext,
+    canGoPrevious,
+    isCompleted,
+    updateState,
+  ]);
 
   return {
+    // 状態
     ...state,
+
+    // ナビゲーション
+    getCurrentQuestion: () => getCurrentQuestion(state),
+    getCurrentAnswer: () => getCurrentAnswer(state),
+    getProgress: () => getProgress(state),
+
+    // バリデーション
+    validateCurrentQuestion,
+    getCurrentValidationError,
+
+    // アクション
     initializeFlow,
+    saveAnswer: saveAnswerToApi,
+    setAnswer,
     goToNext,
     goToPrevious,
-    saveAnswer,
     completeFlow,
-    validateCurrentQuestion,
-    getCurrentQuestion,
-    getProgress,
+    resetState,
+
+    // SWR関連
+    mutateQuestions,
+    isQuestionsLoading: !questions && !questionsError && state.categoryId,
   };
 };
 

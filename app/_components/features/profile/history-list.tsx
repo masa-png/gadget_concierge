@@ -7,19 +7,14 @@ import { Button } from "@/app/_components/ui/button";
 import { Badge } from "@/app/_components/ui/badge";
 import { Clock, Eye, Play } from "lucide-react";
 import useHistory from "@/hooks/use-history";
+import { formatToJapanTime } from "@/lib/utils/date";
 
 const HistoryList: React.FC = () => {
   const router = useRouter();
   const { history, isLoading, error, refetch } = useHistory();
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("ja-JP", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatToJapanTime(dateString);
   };
 
   const getStatusBadge = (status: string) => {

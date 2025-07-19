@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import useSWR, { mutate } from "swr";
 import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
@@ -29,7 +29,7 @@ interface UseProfileReturn {
   setIsEditing: (editing: boolean) => void;
 
   // アクション関数
-  handleSave: (updatedProfile?: ProfileSelectData) => Promise<void>;
+  handleSave: (updatedProfile: ProfileSelectData) => Promise<void>;
   handleCancel: () => void;
   mutateProfile: () => Promise<ProfileResponse | undefined>;
 }
@@ -51,6 +51,7 @@ export function useProfile({
   errorRetryInterval = 5000,
 }: UseProfileOptions): UseProfileReturn {
   const [isEditing, setIsEditing] = useState(false);
+  const [optimisticProfile, setOptimisticProfile] = useState(initialProfile);
 
   // useSWRでfallbackデータを使用
   const {
@@ -72,26 +73,17 @@ export function useProfile({
     errorRetryInterval,
   });
 
-  // 現在のプロフィールデータ
-  const currentProfile = data?.data?.profile || initialProfile;
+  // 現在のプロフィールデータ（楽観的更新を優先）
+  const currentProfile =
+    optimisticProfile || data?.data?.profile || initialProfile;
 
-  const handleSave = async (updatedProfile?: ProfileSelectData) => {
-    try {
-      if (updatedProfile) {
-        // Supabaseのユーザーメタデータも更新
-        const supabase = createClient();
-        try {
-          await supabase.auth.updateUser({
-            data: {
-              full_name: updatedProfile.full_name,
-              avatar_url: updatedProfile.avatar_url,
-            },
-          });
-        } catch (metadataError) {
-          console.warn("ユーザーメタデータの更新に失敗:", metadataError);
-        }
+  const handleSave = useCallback(
+    async (updatedProfile: ProfileSelectData) => {
+      try {
+        // 1. 楽観的更新
+        setOptimisticProfile(updatedProfile);
 
-        // 最新データでキャッシュを直接更新
+        // 2. SWRキャッシュを即座に更新
         const newCacheData = {
           success: true,
           data: { profile: updatedProfile },
@@ -104,19 +96,33 @@ export function useProfile({
           newCacheData,
           false
         );
-      } else {
-        // フォールバック: 通常の再取得
+
+        // 3. 編集モードを終了
+        setIsEditing(false);
+
+        // 4. Supabaseのユーザーメタデータも更新
+        const supabase = createClient();
+        try {
+          await supabase.auth.updateUser({
+            data: {
+              full_name: updatedProfile.full_name,
+              avatar_url: updatedProfile.avatar_url,
+            },
+          });
+        } catch (metadataError) {
+          console.warn("ユーザーメタデータの更新に失敗:", metadataError);
+        }
+      } catch (error) {
+        console.error("プロフィール更新エラー:", error);
+        // エラー時は楽観的更新をロールバック
+        setOptimisticProfile(data?.data?.profile || initialProfile);
+        toast.error("プロフィールの更新に失敗しました");
+        // 最新データで再検証
         await mutateProfile();
       }
-
-      setIsEditing(false);
-      toast.success("プロフィールが更新されました");
-    } catch (error) {
-      console.error("プロフィール更新エラー:", error);
-      toast.error("プロフィールの更新に失敗しました");
-      await mutateProfile();
-    }
-  };
+    },
+    [mutateProfile, data?.data?.profile, initialProfile]
+  );
 
   const handleCancel = () => {
     setIsEditing(false);

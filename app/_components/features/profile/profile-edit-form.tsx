@@ -3,10 +3,8 @@
 import React, { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useFormState } from "react-dom";
 import { toast } from "sonner";
 import { updateProfile } from "@/lib/actions/profile";
-import { type ActionResult } from "@/lib/types/api";
 import {
   UpdateProfileSchema,
   type UpdateProfileData,
@@ -23,13 +21,9 @@ import { Save, X, Edit3 } from "lucide-react";
 
 interface ProfileEditFormProps {
   profile: ProfileSelectData;
-  onSave: (updatedProfile?: ProfileSelectData) => void;
+  onSave: (updatedProfile: ProfileSelectData) => void;
   onCancel: () => void;
 }
-
-const initialState: ActionResult<ProfileSelectData> = {
-  success: false,
-};
 
 export function ProfileEditForm({
   profile,
@@ -37,7 +31,6 @@ export function ProfileEditForm({
   onCancel,
 }: ProfileEditFormProps) {
   const [isPending, startTransition] = useTransition();
-  const [state, formAction] = useFormState(updateProfile, initialState);
 
   const form = useForm<UpdateProfileData>({
     resolver: zodResolver(UpdateProfileSchema),
@@ -48,44 +41,48 @@ export function ProfileEditForm({
     },
   });
 
-  // Server Actionの結果をReact Hook Formに反映
-  React.useEffect(() => {
-    if (state.success && state.data) {
-      // 成功時は最新データでフォームをリセット
-      form.reset({
-        username: state.data.username || "",
-        full_name: state.data.full_name || "",
-        avatar_url: state.data.avatar_url || "",
-      });
-
-      // 最新データをコールバックで渡す
-      onSave(state.data);
-    } else if (!state.success && state.error) {
-      toast.error(state.error);
-
-      // フィールドエラーをReact Hook Formに設定
-      if (state.fieldErrors) {
-        Object.entries(state.fieldErrors).forEach(([field, errors]) => {
-          form.setError(field as keyof UpdateProfileData, {
-            message: errors[0],
-          });
-        });
-      }
-    }
-  }, [state, form, onSave]);
-
   const handleSubmit = (data: UpdateProfileData) => {
-    startTransition(() => {
-      const formData = new FormData();
+    startTransition(async () => {
+      // 1. 楽観的UI更新 - 即座に親コンポーネントに通知
+      const optimisticProfile = { ...profile, ...data };
+      onSave(optimisticProfile);
 
-      // undefinedやnullの値をフィルタリング
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== "") {
-          formData.append(key, String(value));
+      try {
+        // 2. FormDataを作成
+        const formData = new FormData();
+        Object.entries(data).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== "") {
+            formData.append(key, String(value));
+          }
+        });
+
+        // 3. Server Action実行
+        const result = await updateProfile({ success: false }, formData);
+
+        if (result.success && result.data) {
+          // 4. 成功時: 最新データで更新
+          onSave(result.data);
+          toast.success("プロフィールが更新されました");
+        } else {
+          // 5. 失敗時: 元のデータに戻す
+          onSave(profile);
+          toast.error(result.error || "更新に失敗しました");
+
+          // フィールドエラーを設定
+          if (result.fieldErrors) {
+            Object.entries(result.fieldErrors).forEach(([field, errors]) => {
+              form.setError(field as keyof UpdateProfileData, {
+                message: errors[0],
+              });
+            });
+          }
         }
-      });
-
-      formAction(formData);
+      } catch (error) {
+        // 6. エラー時: ロールバック
+        onSave(profile);
+        toast.error("更新に失敗しました");
+        console.error("Profile update error:", error);
+      }
     });
   };
 

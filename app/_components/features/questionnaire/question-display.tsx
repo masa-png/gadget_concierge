@@ -35,6 +35,7 @@ const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
   const [currentAnswer, setCurrentAnswer] = useState<Answer | null>(null);
   const [showValidationError, setShowValidationError] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // 初回のみ初期化
   useEffect(() => {
@@ -42,26 +43,18 @@ const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
       questionFlow.initializeFlow(categoryId, sessionId);
       setInitialized(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryId, sessionId, initialized]);
+  }, [categoryId, sessionId, initialized, questionFlow.initializeFlow]);
 
   // 現在の質問が変わったときに回答を更新
   useEffect(() => {
     const question = questionFlow.getCurrentQuestion();
     if (question) {
-      // 安全なアクセスのため、answersが存在することを確認
-      const existingAnswer =
-        questionFlow.answers && questionFlow.answers.get
-          ? questionFlow.answers.get(question.id)
-          : null;
+      // getCurrentAnswerメソッドを使用して安全にアクセス
+      const existingAnswer = questionFlow.getCurrentAnswer();
       setCurrentAnswer(existingAnswer || null);
       setShowValidationError(false);
     }
-  }, [
-    questionFlow.currentQuestionIndex,
-    questionFlow.questions,
-    questionFlow.answers,
-  ]);
+  }, [questionFlow.currentQuestionIndex, questionFlow.questions]);
 
   const progress = questionFlow.getProgress();
   const currentQuestion = questionFlow.getCurrentQuestion();
@@ -69,32 +62,43 @@ const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
   // 回答変更ハンドラ
   const handleAnswerChange = (answer: Answer) => {
     setCurrentAnswer(answer);
-    questionFlow.saveAnswer(answer);
     setShowValidationError(false);
+    // questionFlowの状態にも反映
+    questionFlow.setAnswer(answer.questionId, answer);
   };
 
   // 次へボタンのハンドラ
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!questionFlow.validateCurrentQuestion()) {
       setShowValidationError(true);
       return;
     }
 
-    // 安全なアクセスのため、questionsが存在し、lengthプロパティがあることを確認
-    const questionsLength =
-      questionFlow.questions && Array.isArray(questionFlow.questions)
-        ? questionFlow.questions.length
-        : 0;
+    try {
+      setIsProcessing(true);
+      setShowValidationError(false);
 
-    if (questionFlow.currentQuestionIndex >= questionsLength - 1) {
-      // 最後の質問の場合、完了処理
-      questionFlow.completeFlow().then(() => {
+      // 現在の回答を保存
+      if (currentAnswer) {
+        await questionFlow.saveAnswer(currentAnswer);
+      }
+
+      // プログレス情報を使用して安全にアクセス
+      const progress = questionFlow.getProgress();
+
+      if (questionFlow.currentQuestionIndex >= progress.total - 1) {
+        // 最後の質問の場合、完了処理
+        await questionFlow.completeFlow();
         if (questionFlow.sessionId) {
           onComplete(questionFlow.sessionId);
         }
-      });
-    } else {
-      questionFlow.goToNext();
+      } else {
+        questionFlow.goToNext();
+      }
+    } catch (error) {
+      console.error('回答保存/セッション完了エラー:', error);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -142,8 +146,8 @@ const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
           <p className="text-red-600 mb-4">{questionFlow.error}</p>
           <Button
             onClick={() => {
-              questionFlow.initializeFlow(categoryId, sessionId);
-              setInitialized(true);
+              setInitialized(false);
+              questionFlow.resetState();
             }}
             variant="default"
           >
@@ -206,6 +210,8 @@ const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
             isLastQuestion={progress.current >= progress.total}
             onPrevious={questionFlow.goToPrevious}
             onNext={handleNext}
+            isLoading={isProcessing}
+            loadingText={progress.current >= progress.total ? "診断中..." : "保存中..."}
           />
         </div>
       </div>
