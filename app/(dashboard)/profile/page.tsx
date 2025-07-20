@@ -5,6 +5,15 @@ import { ProfileSkeleton } from "@/app/_components/ui/skeleton";
 import { createInitialProfile } from "@/lib/actions/profile";
 import { Button } from "@/app/_components/ui/button";
 import { Plus } from "lucide-react";
+import { redirect } from "next/navigation";
+
+async function handleCreateProfile() {
+  "use server";
+  const result = await createInitialProfile();
+  if (result.success) {
+    redirect("/profile");
+  }
+}
 
 export default async function ProfilePage() {
   // サーバーサイドでプロフィールを取得
@@ -24,7 +33,7 @@ export default async function ProfilePage() {
             <p className="text-gray-600 mb-6">
               サービスを利用するためにプロフィールを作成してください
             </p>
-            <form action={async () => { await createInitialProfile(); }}>
+            <form action={handleCreateProfile}>
               <Button
                 type="submit"
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"

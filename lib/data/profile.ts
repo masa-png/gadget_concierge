@@ -22,6 +22,7 @@ export async function getProfile(userId?: string): Promise<ProfileSelectData | n
         username: true,
         full_name: true,
         avatar_url: true,
+        avatar_image_key: true,
         questionCount: true,
         recommendationCount: true,
         created_at: true,
@@ -29,9 +30,13 @@ export async function getProfile(userId?: string): Promise<ProfileSelectData | n
       },
     });
 
+    console.log("取得したプロフィール:", profile);
     return profile ? ProfileSelectSchema.parse(profile) : null;
   } catch (error) {
     console.error("プロフィール取得エラー:", error);
+    if (error instanceof Error) {
+      console.error("エラー詳細:", error.message);
+    }
     return null;
   }
 }
@@ -140,6 +145,7 @@ export async function searchProfiles(
         username: true,
         full_name: true,
         avatar_url: true,
+        avatar_image_key: true,
         questionCount: true,
         recommendationCount: true,
         created_at: true,

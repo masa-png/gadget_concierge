@@ -1,17 +1,18 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/app/_components/ui/card";
 import { Button } from "@/app/_components/ui/button";
 import { Badge } from "@/app/_components/ui/badge";
-import { Clock, Eye, Play } from "lucide-react";
+import { Clock, Eye, Play, Loader2 } from "lucide-react";
 import useHistory from "@/hooks/use-history";
 import { formatToJapanTime } from "@/lib/utils/date";
 
 const HistoryList: React.FC = () => {
   const router = useRouter();
   const { history, isLoading, error, refetch } = useHistory();
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const formatDate = (dateString: string) => {
     return formatToJapanTime(dateString);
@@ -30,12 +31,19 @@ const HistoryList: React.FC = () => {
     }
   };
 
-  const handleViewResult = (sessionId: string) => {
+  const handleViewResult = async (sessionId: string) => {
+    setIsNavigating(true);
     router.push(`/recommendations/result?sessionId=${sessionId}`);
   };
 
-  const handleResume = (sessionId: string) => {
+  const handleResume = async (sessionId: string) => {
+    setIsNavigating(true);
     router.push(`/questionnaire?sessionId=${sessionId}`);
+  };
+
+  const handleStartDiagnosis = async () => {
+    setIsNavigating(true);
+    router.push("/questionnaire");
   };
 
   if (isLoading) {
@@ -78,10 +86,18 @@ const HistoryList: React.FC = () => {
             最初の診断を開始して、ガジェットをお探しください
           </p>
           <Button
-            onClick={() => router.push("/questionnaire")}
+            onClick={handleStartDiagnosis}
+            disabled={isNavigating}
             variant="default"
           >
-            診断を開始
+            {isNavigating ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                開始中...
+              </>
+            ) : (
+              "診断を開始"
+            )}
           </Button>
         </div>
       </Card>
@@ -144,10 +160,15 @@ const HistoryList: React.FC = () => {
                 {item.status === "completed" && (
                   <Button
                     onClick={() => handleViewResult(item.sessionId)}
+                    disabled={isNavigating}
                     size="sm"
                     variant="default"
                   >
-                    <Eye className="w-4 h-4 mr-1" />
+                    {isNavigating ? (
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    ) : (
+                      <Eye className="w-4 h-4 mr-1" />
+                    )}
                     結果を見る
                   </Button>
                 )}
@@ -155,10 +176,15 @@ const HistoryList: React.FC = () => {
                 {item.status === "in_progress" && (
                   <Button
                     onClick={() => handleResume(item.sessionId)}
+                    disabled={isNavigating}
                     size="sm"
                     variant="default"
                   >
-                    <Play className="w-4 h-4 mr-1" />
+                    {isNavigating ? (
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    ) : (
+                      <Play className="w-4 h-4 mr-1" />
+                    )}
                     続きを始める
                   </Button>
                 )}

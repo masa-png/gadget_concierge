@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import useSWR, { mutate } from "swr";
 import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
+import { getProfileImageUrl } from "@/lib/utils/storage";
 import type {
   ProfileSelectData,
   ProfileResponse,
@@ -103,10 +104,14 @@ export function useProfile({
         // 4. Supabaseのユーザーメタデータも更新
         const supabase = createClient();
         try {
+          const avatarUrl = updatedProfile.avatar_image_key
+            ? getProfileImageUrl(updatedProfile.avatar_image_key)
+            : updatedProfile.avatar_url;
+
           await supabase.auth.updateUser({
             data: {
               full_name: updatedProfile.full_name,
-              avatar_url: updatedProfile.avatar_url,
+              avatar_url: avatarUrl,
             },
           });
         } catch (metadataError) {

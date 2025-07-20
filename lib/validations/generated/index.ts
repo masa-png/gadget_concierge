@@ -77,7 +77,7 @@ export const isValidDecimalInput =
 
 export const TransactionIsolationLevelSchema = z.enum(['ReadUncommitted','ReadCommitted','RepeatableRead','Serializable']);
 
-export const UserProfileScalarFieldEnumSchema = z.enum(['id','userId','username','full_name','avatar_url','questionCount','recommendationCount','created_at','updated_at']);
+export const UserProfileScalarFieldEnumSchema = z.enum(['id','userId','username','full_name','avatar_url','avatar_image_key','questionCount','recommendationCount','created_at','updated_at']);
 
 export const CategoryScalarFieldEnumSchema = z.enum(['id','name','description','parentId','created_at','updated_at']);
 
@@ -141,6 +141,7 @@ export const UserProfileSchema = z.object({
   username: z.string().nullable(),
   full_name: z.string().nullable(),
   avatar_url: z.string().nullable(),
+  avatar_image_key: z.string().nullable(),
   questionCount: z.number().int(),
   recommendationCount: z.number().int(),
   created_at: z.coerce.date(),
