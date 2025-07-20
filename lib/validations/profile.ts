@@ -32,6 +32,7 @@ export const CreateProfileSchema = z.object({
     )
     .optional(),
   avatar_url: z.string().url("正しいURLを入力してください").optional(),
+  avatar_image_key: z.string().optional(),
 });
 
 // 更新用スキーマ（部分的な更新を許可）
@@ -44,6 +45,7 @@ export const ProfileSelectSchema = UserProfileSchema.pick({
   username: true,
   full_name: true,
   avatar_url: true,
+  avatar_image_key: true,
   questionCount: true,
   recommendationCount: true,
   created_at: true,
@@ -55,6 +57,7 @@ export const ProfileFormDataSchema = z.object({
   username: z.string().optional(),
   full_name: z.string().optional(),
   avatar_url: z.string().optional(),
+  avatar_image_key: z.string().optional(),
 });
 
 // ==============================

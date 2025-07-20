@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useTransition } from "react";
+import React, { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -17,6 +17,8 @@ import {
   CardTitle,
 } from "@/app/_components/ui/card";
 import { Button } from "@/app/_components/ui/button";
+import { ImageUpload } from "@/app/_components/ui/image-upload";
+import { uploadProfileImage, deleteProfileImage } from "@/lib/utils/storage";
 import { Save, X, Edit3 } from "lucide-react";
 
 interface ProfileEditFormProps {
@@ -31,6 +33,8 @@ export function ProfileEditForm({
   onCancel,
 }: ProfileEditFormProps) {
   const [isPending, startTransition] = useTransition();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<UpdateProfileData>({
     resolver: zodResolver(UpdateProfileSchema),
@@ -38,19 +42,41 @@ export function ProfileEditForm({
       username: profile.username || "",
       full_name: profile.full_name || "",
       avatar_url: profile.avatar_url || "",
+      avatar_image_key: profile.avatar_image_key || "",
     },
   });
 
   const handleSubmit = (data: UpdateProfileData) => {
     startTransition(async () => {
-      // 1. 楽観的UI更新 - 即座に親コンポーネントに通知
-      const optimisticProfile = { ...profile, ...data };
-      onSave(optimisticProfile);
+      setIsUploading(true);
 
       try {
+        let updatedData = { ...data };
+
+        // 画像がアップロードされている場合の処理
+        if (selectedFile) {
+          const uploadResult = await uploadProfileImage(selectedFile);
+          if (uploadResult.error) {
+            toast.error(uploadResult.error);
+            setIsUploading(false);
+            return;
+          }
+
+          // 古い画像を削除
+          if (profile.avatar_image_key) {
+            await deleteProfileImage(profile.avatar_image_key);
+          }
+
+          updatedData.avatar_image_key = uploadResult.key;
+        }
+
+        // 1. 楽観的UI更新 - 即座に親コンポーネントに通知
+        const optimisticProfile = { ...profile, ...updatedData };
+        onSave(optimisticProfile);
+
         // 2. FormDataを作成
         const formData = new FormData();
-        Object.entries(data).forEach(([key, value]) => {
+        Object.entries(updatedData).forEach(([key, value]) => {
           if (value !== undefined && value !== null && value !== "") {
             formData.append(key, String(value));
           }
@@ -63,6 +89,7 @@ export function ProfileEditForm({
           // 4. 成功時: 最新データで更新
           onSave(result.data);
           toast.success("プロフィールが更新されました");
+          setSelectedFile(null);
         } else {
           // 5. 失敗時: 元のデータに戻す
           onSave(profile);
@@ -82,8 +109,19 @@ export function ProfileEditForm({
         onSave(profile);
         toast.error("更新に失敗しました");
         console.error("Profile update error:", error);
+      } finally {
+        setIsUploading(false);
       }
     });
+  };
+
+  const handleImageSelect = (file: File) => {
+    setSelectedFile(file);
+  };
+
+  const handleImageRemove = () => {
+    setSelectedFile(null);
+    form.setValue("avatar_image_key", "");
   };
 
   return (
@@ -98,7 +136,19 @@ export function ProfileEditForm({
       </CardHeader>
       <CardContent className="p-8">
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-          <div className="space-y-4">
+          <div className="space-y-6">
+            {/* プロフィール画像アップロード */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-4">
+                プロフィール画像
+              </label>
+              <ImageUpload
+                currentImageKey={profile.avatar_image_key}
+                onImageSelect={handleImageSelect}
+                onImageRemove={handleImageRemove}
+                isUploading={isUploading}
+              />
+            </div>
             {/* ユーザー名フィールド */}
             <div>
               <label
@@ -144,43 +194,20 @@ export function ProfileEditForm({
                 </p>
               )}
             </div>
-
-            {/* アバターURLフィールド */}
-            <div>
-              <label
-                htmlFor="avatar_url"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                アバターURL（任意）
-              </label>
-              <input
-                {...form.register("avatar_url")}
-                id="avatar_url"
-                type="url"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                placeholder="https://example.com/avatar.jpg"
-                disabled={isPending}
-              />
-              {form.formState.errors.avatar_url && (
-                <p className="text-red-500 text-sm mt-1">
-                  {form.formState.errors.avatar_url.message}
-                </p>
-              )}
-            </div>
           </div>
 
           {/* アクションボタン */}
           <div className="flex gap-4 pt-6">
             <Button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || isUploading}
               variant="default"
               className="flex-1"
             >
-              {isPending ? (
+              {isPending || isUploading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  保存中...
+                  {isUploading ? "アップロード中..." : "保存中..."}
                 </>
               ) : (
                 <>
@@ -192,7 +219,7 @@ export function ProfileEditForm({
             <Button
               type="button"
               onClick={onCancel}
-              disabled={isPending}
+              disabled={isPending || isUploading}
               variant="outline"
               className="flex-1"
             >

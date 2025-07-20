@@ -10,6 +10,7 @@ import { Button } from "@/app/_components/ui/button";
 import { MessageSquare, Sparkles, Settings, Calendar } from "lucide-react";
 import type { ProfileSelectData } from "@/lib/validations/profile";
 import { formatToJapanDate } from "@/lib/utils/date";
+import { getProfileImageUrl } from "@/lib/utils/storage";
 
 interface ProfileInfoProps {
   profile: ProfileSelectData;
@@ -25,6 +26,10 @@ export function ProfileInfo({ profile, onEdit }: ProfileInfoProps) {
     return formatToJapanDate(date) + "から利用開始";
   };
 
+  const avatarImageUrl =
+    getProfileImageUrl(profile.avatar_image_key) || profile.avatar_url;
+
+
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -33,7 +38,7 @@ export function ProfileInfo({ profile, onEdit }: ProfileInfoProps) {
           <div className="relative inline-block mb-4">
             <Avatar className="h-32 w-32 ring-4 ring-gray-200 shadow-lg">
               <AvatarImage
-                src={profile.avatar_url || undefined}
+                src={avatarImageUrl || undefined}
                 alt={profile.full_name || undefined}
               />
               <AvatarFallback className="bg-gray-300 text-gray-700 text-4xl font-bold">

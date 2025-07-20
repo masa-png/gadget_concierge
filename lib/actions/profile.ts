@@ -53,6 +53,7 @@ export async function updateProfile(
       username: formDataValidation.data.username || undefined,
       full_name: formDataValidation.data.full_name || undefined,
       avatar_url: formDataValidation.data.avatar_url || undefined,
+      avatar_image_key: formDataValidation.data.avatar_image_key || undefined,
     };
 
     const validation = validateUpdateProfile(profileData);
@@ -94,6 +95,7 @@ export async function updateProfile(
         username: true,
         full_name: true,
         avatar_url: true,
+        avatar_image_key: true,
         questionCount: true,
         recommendationCount: true,
         created_at: true,
@@ -177,6 +179,7 @@ export async function createProfile(
         "名前未設定",
       avatar_url:
         formDataValidation.data.avatar_url || user.user_metadata?.avatar_url,
+      avatar_image_key: formDataValidation.data.avatar_image_key || undefined,
     };
 
     const validation = validateCreateProfile(profileData);
@@ -217,6 +220,7 @@ export async function createProfile(
         username: true,
         full_name: true,
         avatar_url: true,
+        avatar_image_key: true,
         questionCount: true,
         recommendationCount: true,
         created_at: true,
@@ -268,6 +272,7 @@ export async function createInitialProfile(): Promise<
         username: true,
         full_name: true,
         avatar_url: true,
+        avatar_image_key: true,
         questionCount: true,
         recommendationCount: true,
         created_at: true,
@@ -307,6 +312,7 @@ export async function createInitialProfile(): Promise<
         username: true,
         full_name: true,
         avatar_url: true,
+        avatar_image_key: true,
         questionCount: true,
         recommendationCount: true,
         created_at: true,

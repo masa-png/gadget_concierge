@@ -141,9 +141,9 @@ export const Header = React.memo(function Header() {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard" className="cursor-pointer">
+                  <Link href="/profile" className="cursor-pointer">
                     <BarChart3 className="mr-2 h-4 w-4" />
-                    ダッシュボード
+                    利用履歴
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>

@@ -24,6 +24,7 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
   } = useProfile({ initialProfile });
 
   // console.log("現在のプロフィールデータ:", currentProfile);
+  // console.log("エラー:", error);
 
   if (error) {
     return (
