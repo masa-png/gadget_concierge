@@ -336,3 +336,45 @@ enum HistoryType {
 
   @@map("history_type")
 }
+
+// お問い合わせ
+model ContactInquiry {
+  id         String          @id @default(cuid())
+  name       String          @db.VarChar(50)
+  email      String          @db.VarChar(255)
+  subject    String          @db.VarChar(100)
+  message    String          @db.Text
+  status     InquiryStatus   @default(UNREAD)
+  priority   InquiryPriority @default(NORMAL)
+  created_at DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at DateTime        @default(now()) @updatedAt @db.Timestamptz(6)
+
+  // 管理用フィールド
+  assignee_id String? // 担当者ID（将来的に管理者機能追加時）
+  notes       String?   @db.Text // 管理者メモ
+  resolved_at DateTime? @db.Timestamptz(6) // 解決日時
+
+  @@index([status])
+  @@index([priority])
+  @@index([created_at])
+  @@index([email])
+  @@map("contact_inquiries")
+}
+
+enum InquiryStatus {
+  UNREAD // 未読
+  IN_PROGRESS // 対応中
+  RESOLVED // 解決済み
+  CLOSED // 終了
+
+  @@map("inquiry_status")
+}
+
+enum InquiryPriority {
+  LOW // 低
+  NORMAL // 通常
+  HIGH // 高
+  URGENT // 緊急
+
+  @@map("inquiry_priority")
+}

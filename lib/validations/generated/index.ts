@@ -105,6 +105,8 @@ export const RecommendationScalarFieldEnumSchema = z.enum(['id','questionnaireSe
 
 export const UserHistoryScalarFieldEnumSchema = z.enum(['id','userProfileId','type','title','description','status','created_at','updated_at','sessionId','categoryId','score','completion_rate','details_json']);
 
+export const ContactInquiryScalarFieldEnumSchema = z.enum(['id','name','email','subject','message','status','priority','created_at','updated_at','assignee_id','notes','resolved_at']);
+
 export const SortOrderSchema = z.enum(['asc','desc']);
 
 export const NullableJsonNullValueInputSchema = z.enum(['DbNull','JsonNull',]).transform((value) => value === 'JsonNull' ? Prisma.JsonNull : value === 'DbNull' ? Prisma.DbNull : value);
@@ -126,6 +128,14 @@ export type SessionStatusType = `${z.infer<typeof SessionStatusSchema>}`
 export const HistoryTypeSchema = z.enum(['QUESTIONNAIRE','RECOMMENDATION']);
 
 export type HistoryTypeType = `${z.infer<typeof HistoryTypeSchema>}`
+
+export const InquiryStatusSchema = z.enum(['UNREAD','IN_PROGRESS','RESOLVED','CLOSED']);
+
+export type InquiryStatusType = `${z.infer<typeof InquiryStatusSchema>}`
+
+export const InquiryPrioritySchema = z.enum(['LOW','NORMAL','HIGH','URGENT']);
+
+export type InquiryPriorityType = `${z.infer<typeof InquiryPrioritySchema>}`
 
 /////////////////////////////////////////
 // MODELS
@@ -1549,3 +1559,45 @@ export const UserHistoryWithPartialRelationsSchema: z.ZodType<UserHistoryWithPar
   category: z.lazy(() => CategoryPartialWithRelationsSchema).nullable(),
   session: z.lazy(() => QuestionnaireSessionPartialWithRelationsSchema).nullable(),
 }).partial())
+
+/////////////////////////////////////////
+// CONTACT INQUIRY SCHEMA
+/////////////////////////////////////////
+
+export const ContactInquirySchema = z.object({
+  status: InquiryStatusSchema,
+  priority: InquiryPrioritySchema,
+  id: z.string().cuid(),
+  name: z.string(),
+  email: z.string(),
+  subject: z.string(),
+  message: z.string(),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+  assignee_id: z.string().nullable(),
+  notes: z.string().nullable(),
+  resolved_at: z.coerce.date().nullable(),
+})
+
+export type ContactInquiry = z.infer<typeof ContactInquirySchema>
+
+/////////////////////////////////////////
+// CONTACT INQUIRY PARTIAL SCHEMA
+/////////////////////////////////////////
+
+export const ContactInquiryPartialSchema = ContactInquirySchema.partial()
+
+export type ContactInquiryPartial = z.infer<typeof ContactInquiryPartialSchema>
+
+// CONTACT INQUIRY OPTIONAL DEFAULTS SCHEMA
+//------------------------------------------------------
+
+export const ContactInquiryOptionalDefaultsSchema = ContactInquirySchema.merge(z.object({
+  status: InquiryStatusSchema.optional(),
+  priority: InquiryPrioritySchema.optional(),
+  id: z.string().cuid().optional(),
+  created_at: z.coerce.date().optional(),
+  updated_at: z.coerce.date().optional(),
+}))
+
+export type ContactInquiryOptionalDefaults = z.infer<typeof ContactInquiryOptionalDefaultsSchema>

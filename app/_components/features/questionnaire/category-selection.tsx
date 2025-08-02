@@ -49,7 +49,6 @@ const CategorySelection: React.FC<CategorySelectionProps> = ({
         setError(null);
 
         const response = await categoryApi.list();
-        console.log("取得したカテゴリ:", response.categories);
 
         const categoriesData: Category[] = response.categories.map(
           (category) => ({
@@ -85,7 +84,7 @@ const CategorySelection: React.FC<CategorySelectionProps> = ({
   }, [isAuthenticated, authLoading]);
 
   const handleCategorySelect = (categoryId: string) => {
-    console.log("選択されたカテゴリID:", categoryId);
+    // console.log("選択されたカテゴリID:", categoryId);
     setSelectedCategory(categoryId);
     onCategorySelect(categoryId);
   };
@@ -97,11 +96,11 @@ const CategorySelection: React.FC<CategorySelectionProps> = ({
       setIsCreatingSession(true);
       setError(null);
 
-      console.log("セッションを作成中...", selectedCategory);
+      // console.log("セッションを作成中...", selectedCategory);
       const response = await sessionApi.create(selectedCategory);
       const sessionId = response.data.session.id;
 
-      console.log("セッション作成完了:", sessionId);
+      // console.log("セッション作成完了:", sessionId);
       onNext(sessionId);
     } catch (error) {
       console.error("セッション作成エラー:", error);
