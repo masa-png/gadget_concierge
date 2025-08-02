@@ -33,7 +33,7 @@ export function Footer() {
           <Link href="/questionnaire">
             <button className="inline-flex items-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg shadow-lg hover:bg-gray-50 hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 border border-transparent hover:border-blue-200">
               <MessageSquare className="mr-2 h-4 w-4" />
-              無料で診断を開始
+              診断を開始
             </button>
           </Link>
         </div>

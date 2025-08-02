@@ -116,14 +116,14 @@ const useQuestionFlow = () => {
     if (state.sessionId) {
       return state.sessionId;
     }
-    
+
     // セッションIDがない場合は新規作成
     if (state.categoryId) {
       const { sessionId: newSessionId } = await createSession(state.categoryId);
       updateState({ sessionId: newSessionId });
       return newSessionId;
     }
-    
+
     return null;
   }, [state.sessionId, state.categoryId, createSession, updateState]);
 
