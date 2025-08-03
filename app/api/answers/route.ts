@@ -302,7 +302,7 @@ export async function GET(request: NextRequest) {
 
     // 共通ヘルパーでユーザープロフィール・セッション取得
     const userProfile = await getUserProfile(user.id);
-    const session = await getSession(sessionId, userProfile.id);
+    await getSession(sessionId, userProfile.id);
 
     // 回答一覧を取得
     const answers = await prisma.answer.findMany({

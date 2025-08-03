@@ -16,7 +16,6 @@ const RangeQuestion: React.FC<RangeQuestionProps> = ({
   question,
   answer,
   onAnswerChange,
-  isRequired,
 }) => {
   const [value, setValue] = useState(answer?.range_value || 5);
 

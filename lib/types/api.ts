@@ -1,5 +1,5 @@
 // API共通の型定義
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -7,7 +7,7 @@ export interface ApiResponse<T = any> {
 }
 
 // Server Action用の統一された戻り値の型定義
-export interface ActionResult<T = any> {
+export interface ActionResult<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;

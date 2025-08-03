@@ -1,13 +1,13 @@
 // APIクライアント関数
 export class ApiError extends Error {
-  constructor(message: string, public status: number, public data?: any) {
+  constructor(message: string, public status: number, public data?: unknown) {
     super(message);
     this.name = "ApiError";
   }
 }
 
 // 認証エラーかどうかを判定
-export function isAuthError(error: any): boolean {
+export function isAuthError(error: unknown): boolean {
   return error instanceof ApiError && error.status === 401;
 }
 

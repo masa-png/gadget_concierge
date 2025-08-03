@@ -102,7 +102,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const isCompleted = !nextQuestion;
 
     // レスポンス構築
-    const responseData: any = {
+    const responseData: {
+      sessionId: string;
+      categoryId: string | null;
+      isCompleted: boolean;
+      unansweredRequired: Array<{ id: string; text: string; type: string }>;
+      nextQuestion: {
+        id: string;
+        text: string;
+        description: string | null;
+        type: string;
+        is_required: boolean;
+        options: Array<unknown>;
+      } | null;
+      answeredCount: number;
+      totalQuestions: number;
+    } = {
       sessionId: session.id,
       categoryId: session.categoryId,
       isCompleted,

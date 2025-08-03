@@ -51,7 +51,7 @@ export function ProfileEditForm({
       setIsUploading(true);
 
       try {
-        let updatedData = { ...data };
+        const updatedData = { ...data };
 
         // 画像がアップロードされている場合の処理
         if (selectedFile) {

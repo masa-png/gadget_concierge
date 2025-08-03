@@ -201,9 +201,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     // 更新データを準備
-    const updateData: any = {};
+    const updateData: { status?: "IN_PROGRESS" | "COMPLETED" | "ABANDONED"; completed_at?: Date } = {};
     if (status) {
-      updateData.status = status;
+      updateData.status = status as "IN_PROGRESS" | "COMPLETED" | "ABANDONED";
       if (status === "COMPLETED") {
         updateData.completed_at = new Date();
       }

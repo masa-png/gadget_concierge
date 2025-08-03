@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/app/_components/ui/card";
 import { Button } from "@/app/_components/ui/button";
-import { Badge } from "@/app/_components/ui/badge";
 import { recommendationApi, ApiError } from "@/lib/api-client";
 
 interface Recommendation {
@@ -25,7 +24,7 @@ interface Recommendation {
 }
 
 interface ResultPageProps {
-  params: {};
+  params: Record<string, never>;
 }
 
 const ResultPage: React.FC<ResultPageProps> = () => {
@@ -152,7 +151,7 @@ const ResultPage: React.FC<ResultPageProps> = () => {
         {/* Recommendations */}
         <div className="space-y-6 mb-8">
           {recommendations.length > 0 ? (
-            recommendations.map((recommendation, index) => (
+            recommendations.map((recommendation) => (
               <Card key={recommendation.id} className="p-6">
                 <div className="flex flex-col md:flex-row gap-6">
                   {/* Image */}

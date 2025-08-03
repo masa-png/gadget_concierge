@@ -21,7 +21,13 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase.auth.verifyOtp({
       token_hash,
-      type: type as any,
+      type: type as
+        | "signup"
+        | "invite"
+        | "magiclink"
+        | "recovery"
+        | "email_change"
+        | "email",
     });
 
     if (!error && data?.user) {

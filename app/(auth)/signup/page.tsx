@@ -52,17 +52,16 @@ export default function SignupPage() {
 
       // 成功時の処理（redirectが発生しない場合）
       // 通常はredirectするため、ここは実行されない
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Signup error:", e);
 
       // NEXT_REDIRECTエラーは正常な動作なので無視
-      if (e?.message?.includes("NEXT_REDIRECT")) {
-        console.log("Redirect triggered - this is expected behavior");
+      if ((e as Error)?.message?.includes("NEXT_REDIRECT")) {
         return;
       }
 
       // その他の実際のエラーの場合
-      if (e?.message) {
+      if (e instanceof Error && e.message) {
         setServerError(`サインアップ中にエラーが発生しました: ${e.message}`);
       } else {
         setServerError(

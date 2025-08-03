@@ -10,7 +10,6 @@ import { ErrorCodes } from "@/lib/validations/api";
 import { prisma } from "@/lib/prisma";
 import {
   getUserProfile,
-  getSession,
   checkRequiredAnswers,
 } from "@/lib/api/helpers";
 

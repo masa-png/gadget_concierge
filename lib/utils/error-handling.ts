@@ -73,14 +73,16 @@ export function formatZodError(error: z.ZodError): {
 /**
  * Prismaエラーをアプリケーションエラーに変換
  */
-export function formatPrismaError(error: any): {
+export function formatPrismaError(error: unknown): {
   success: false;
   error: string;
   fieldErrors?: Record<string, string[]>;
 } {
-  // 重複エラー
-  if (error.code === "P2002") {
-    const target = error.meta?.target;
+  // Type guard for Prisma errors
+  if (error && typeof error === 'object' && 'code' in error) {
+    // 重複エラー
+    if (error.code === "P2002") {
+      const target = 'meta' in error && error.meta && typeof error.meta === 'object' && 'target' in error.meta ? error.meta.target : undefined;
     const field = Array.isArray(target) ? target[0] : target;
 
     let message = "既に存在するデータです";
@@ -99,22 +101,23 @@ export function formatPrismaError(error: any): {
       error: message,
       fieldErrors,
     };
-  }
+    }
 
-  // 外部キー制約エラー
-  if (error.code === "P2003") {
-    return {
-      success: false,
-      error: "関連するデータが見つかりません",
-    };
-  }
+    // 外部キー制約エラー
+    if (error.code === "P2003") {
+      return {
+        success: false,
+        error: "関連するデータが見つかりません",
+      };
+    }
 
-  // レコードが見つからない
-  if (error.code === "P2025") {
-    return {
-      success: false,
-      error: "データが見つかりません",
-    };
+    // レコードが見つからない
+    if (error.code === "P2025") {
+      return {
+        success: false,
+        error: "データが見つかりません",
+      };
+    }
   }
 
   console.error("Prisma error:", error);

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/utils/supabase/server";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // カテゴリ一覧を取得（認証不要の公開API）
     const categories = await prisma.category.findMany({

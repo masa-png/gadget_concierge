@@ -17,7 +17,6 @@ const MultipleChoiceQuestion: React.FC<MultipleChoiceQuestionProps> = ({
   question,
   answer,
   onAnswerChange,
-  isRequired,
 }) => {
   const selectedIds = answer?.questionOptionIds || [];
 
