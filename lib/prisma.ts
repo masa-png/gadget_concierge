@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client"
 
 // PrismaClientのグローバルインスタンスを宣言
 declare global {
+  // eslint-disable-next-line no-var
   var prismaInstance: PrismaClient | undefined
 }
 

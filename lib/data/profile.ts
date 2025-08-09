@@ -81,7 +81,7 @@ export async function checkProfileExists(userId: string): Promise<boolean> {
  */
 export async function checkUsernameExists(username: string, excludeUserId?: string): Promise<boolean> {
   try {
-    const whereClause: any = { username };
+    const whereClause: { username: string; NOT?: { userId: string } } = { username };
 
     if (excludeUserId) {
       whereClause.NOT = { userId: excludeUserId };

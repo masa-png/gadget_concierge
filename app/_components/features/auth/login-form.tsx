@@ -50,7 +50,7 @@ export function LoginForm() {
         // ログイン成功時
         await refreshAuth(); // 認証状態を更新
       }
-    } catch (err) {
+    } catch {
       setError("ログインに失敗しました。もう一度お試しください。");
     } finally {
       setIsLoading(false);

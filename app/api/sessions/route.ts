@@ -55,9 +55,9 @@ export async function POST(request: NextRequest) {
       userProfile = await prisma.userProfile.create({
         data: {
           userId: user.id,
-          username: user.user_metadata?.username || null,
-          full_name: user.user_metadata?.full_name || null,
-          avatar_url: user.user_metadata?.avatar_url || null,
+          username: null,
+          full_name: null,
+          avatar_url: null,
         },
       });
     }

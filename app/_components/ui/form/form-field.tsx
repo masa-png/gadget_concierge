@@ -15,7 +15,7 @@ interface FormFieldProps {
   required?: boolean;
   disabled?: boolean;
   className?: string;
-  register?: any;
+  register?: (name: string) => Record<string, unknown>;
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }

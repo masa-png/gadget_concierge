@@ -3,19 +3,17 @@ import { z } from "zod";
 // API共通のレスポンススキーマ
 export const ApiResponseSchema = z.object({
   success: z.boolean(),
-  data: z.any().optional(),
+  data: z.unknown().optional(),
   error: z.string().optional(),
   message: z.string().optional(),
 });
 
-export type ApiResponse<T = any> = {
+export type ApiResponse<T = unknown> = {
   success: boolean;
   data?: T;
   error?: string;
   message?: string;
 };
-
-// プロフィール関連のスキーマは lib/validations/profile.ts に移動
 
 // ページネーション
 export const PaginationSchema = z.object({

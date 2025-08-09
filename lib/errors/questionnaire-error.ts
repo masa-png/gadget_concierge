@@ -14,7 +14,7 @@ export class QuestionnaireError extends Error {
   constructor(
     message: string,
     public code: QuestionnaireErrorCode,
-    public context?: any
+    public context?: unknown
   ) {
     super(message);
     this.name = "QuestionnaireError";
@@ -22,69 +22,69 @@ export class QuestionnaireError extends Error {
 }
 
 export const createQuestionnaireError = {
-  authRequired: (context?: any) =>
+  authRequired: (context?: unknown) =>
     new QuestionnaireError(
       "ログインが必要です",
       QuestionnaireErrorCode.AUTH_REQUIRED,
       context
     ),
 
-  authLoading: (context?: any) =>
+  authLoading: (context?: unknown) =>
     new QuestionnaireError(
       "認証状態を確認中です...",
       QuestionnaireErrorCode.AUTH_LOADING,
       context
     ),
 
-  sessionNotFound: (context?: any) =>
+  sessionNotFound: (context?: unknown) =>
     new QuestionnaireError(
       "セッションが見つかりません",
       QuestionnaireErrorCode.SESSION_NOT_FOUND,
       context
     ),
 
-  questionsNotFound: (context?: any) =>
+  questionsNotFound: (context?: unknown) =>
     new QuestionnaireError(
       "質問データの取得に失敗しました",
       QuestionnaireErrorCode.QUESTIONS_NOT_FOUND,
       context
     ),
 
-  invalidAnswer: (message: string, context?: any) =>
+  invalidAnswer: (message: string, context?: unknown) =>
     new QuestionnaireError(
       message,
       QuestionnaireErrorCode.INVALID_ANSWER,
       context
     ),
 
-  networkError: (context?: any) =>
+  networkError: (context?: unknown) =>
     new QuestionnaireError(
       "サーバーに接続できません。ネットワークやサーバー状態を確認してください。",
       QuestionnaireErrorCode.NETWORK_ERROR,
       context
     ),
 
-  rateLimited: (context?: any) =>
+  rateLimited: (context?: unknown) =>
     new QuestionnaireError(
       "リクエストが多すぎます。しばらく待ってから再度お試しください。",
       QuestionnaireErrorCode.RATE_LIMITED,
       context
     ),
 
-  validationError: (message: string, context?: any) =>
+  validationError: (message: string, context?: unknown) =>
     new QuestionnaireError(
       message,
       QuestionnaireErrorCode.VALIDATION_ERROR,
       context
     ),
 
-  unknown: (originalError: unknown, context?: any) =>
+  unknown: (originalError: unknown, context?: unknown) =>
     new QuestionnaireError(
       originalError instanceof Error
         ? originalError.message
         : "予期しないエラーが発生しました",
       QuestionnaireErrorCode.UNKNOWN_ERROR,
-      { originalError, ...context }
+      { originalError, ...(context && typeof context === 'object' ? context : {}) }
     ),
 };
 
@@ -96,7 +96,7 @@ export function handleQuestionnaireError(error: unknown): QuestionnaireError {
   if (error instanceof Error) {
     // API エラーの場合
     if ("status" in error) {
-      const status = (error as any).status;
+      const status = (error as { status: number }).status;
       switch (status) {
         case 401:
           return createQuestionnaireError.authRequired({

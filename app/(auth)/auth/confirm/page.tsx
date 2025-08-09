@@ -60,7 +60,7 @@ export default function ConfirmPage() {
           message: "確認メールを再送信しました。",
         });
       }
-    } catch (err) {
+    } catch {
       setResendStatus({
         type: "error",
         message: "再送信に失敗しました。もう一度お試しください。",

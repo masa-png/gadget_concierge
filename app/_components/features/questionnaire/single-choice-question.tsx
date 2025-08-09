@@ -16,7 +16,6 @@ const SingleChoiceQuestion: React.FC<SingleChoiceQuestionProps> = ({
   question,
   answer,
   onAnswerChange,
-  isRequired,
 }) => {
   const handleOptionSelect = (optionId: string) => {
     onAnswerChange({

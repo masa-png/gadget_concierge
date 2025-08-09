@@ -23,9 +23,6 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
     mutateProfile,
   } = useProfile({ initialProfile });
 
-  // console.log("現在のプロフィールデータ:", currentProfile);
-  // console.log("エラー:", error);
-
   if (error) {
     return (
       <div className="text-center py-12">

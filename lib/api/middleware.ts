@@ -33,7 +33,7 @@ export function createErrorResponse(
   error: string,
   status: number = 400,
   code?: string,
-  extra?: Record<string, any>
+  extra?: Record<string, unknown>
 ): NextResponse<ApiResponse> {
   return NextResponse.json(
     {
@@ -64,9 +64,10 @@ export function createSuccessResponse<T>(
 
 // 認証チェックミドルウェア
 export async function requireAuth(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   request: NextRequest
 ): Promise<
-  { success: true; user: any } | { success: false; response: NextResponse }
+  { success: true; user: { id: string; email?: string } } | { success: false; response: NextResponse }
 > {
   try {
     const supabase = await createClient();
@@ -112,7 +113,7 @@ export function validateRequest<T extends z.ZodSchema>(
     | { success: false; response: NextResponse }
   > => {
     try {
-      let data: any;
+      let data: unknown;
 
       if (source === "body") {
         const body = await request.json();
@@ -143,7 +144,7 @@ export function validateRequest<T extends z.ZodSchema>(
         success: true,
         data: result.data,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         response: createErrorResponse(

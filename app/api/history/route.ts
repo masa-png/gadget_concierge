@@ -44,8 +44,8 @@ export async function GET(request: NextRequest) {
     const type = url.searchParams.get("type"); // QUESTIONNAIRE, RECOMMENDATION
 
     // クエリ条件を構築
-    const where: any = { userProfileId: userProfile.id };
-    if (type) {
+    const where: { userProfileId: string; type?: "QUESTIONNAIRE" | "RECOMMENDATION" } = { userProfileId: userProfile.id };
+    if (type && (type === "QUESTIONNAIRE" || type === "RECOMMENDATION")) {
       where.type = type;
     }
 

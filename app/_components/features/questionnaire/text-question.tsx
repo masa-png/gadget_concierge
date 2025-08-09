@@ -16,7 +16,6 @@ const TextQuestion: React.FC<TextQuestionProps> = ({
   question,
   answer,
   onAnswerChange,
-  isRequired,
 }) => {
   const [value, setValue] = useState(answer?.text_value || "");
 
