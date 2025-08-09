@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
+import Image from "next/image";
 import { Camera, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "./button";
@@ -24,7 +25,9 @@ export function ImageUpload({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const currentImageUrl = currentImageKey ? getProfileImageUrl(currentImageKey) : null;
+  const currentImageUrl = currentImageKey
+    ? getProfileImageUrl(currentImageKey)
+    : null;
   const displayImageUrl = previewUrl || currentImageUrl;
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,10 +80,13 @@ export function ImageUpload({
         <div className="relative">
           <div className="w-32 h-32 rounded-full border-4 border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
             {displayImageUrl ? (
-              <img
+              <Image
                 src={displayImageUrl}
                 alt="プロフィール画像"
+                width={128}
+                height={128}
                 className="w-full h-full object-cover"
+                unoptimized
               />
             ) : (
               <Camera className="w-12 h-12 text-gray-400" />
@@ -133,7 +139,8 @@ export function ImageUpload({
 
         {/* ヘルプテキスト */}
         <p className="text-sm text-gray-500 text-center">
-          JPEG、PNG、WebP形式<br />
+          JPEG、PNG、WebP形式
+          <br />
           最大5MBまで
         </p>
       </div>

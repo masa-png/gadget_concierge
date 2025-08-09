@@ -11,6 +11,9 @@ import { ErrorCodes } from "@/lib/validations/api";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
+// 動的レンダリングを明示的に指定
+export const dynamic = "force-dynamic";
+
 // セッション作成のバリデーションスキーマ
 const createSessionSchema = z.object({
   categoryId: z.string().cuid("有効なカテゴリIDを指定してください"),

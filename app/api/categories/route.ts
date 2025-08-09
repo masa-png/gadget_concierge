@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/utils/supabase/server";
 
+// 動的レンダリングを明示的に指定
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     // カテゴリ一覧を取得（認証不要の公開API）

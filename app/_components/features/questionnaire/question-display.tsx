@@ -43,6 +43,7 @@ const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
       questionFlow.initializeFlow(categoryId, sessionId);
       setInitialized(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryId, sessionId, initialized, questionFlow.initializeFlow]);
 
   // 現在の質問が変わったときに回答を更新
@@ -54,6 +55,7 @@ const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
       setCurrentAnswer(existingAnswer || null);
       setShowValidationError(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questionFlow.currentQuestionIndex, questionFlow.questions]);
 
   const progress = questionFlow.getProgress();
@@ -96,7 +98,7 @@ const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
         questionFlow.goToNext();
       }
     } catch (error) {
-      console.error('回答保存/セッション完了エラー:', error);
+      console.error("回答保存/セッション完了エラー:", error);
     } finally {
       setIsProcessing(false);
     }
@@ -211,7 +213,9 @@ const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
             onPrevious={questionFlow.goToPrevious}
             onNext={handleNext}
             isLoading={isProcessing}
-            loadingText={progress.current >= progress.total ? "診断中..." : "保存中..."}
+            loadingText={
+              progress.current >= progress.total ? "診断中..." : "保存中..."
+            }
           />
         </div>
       </div>

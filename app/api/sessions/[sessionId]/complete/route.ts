@@ -8,10 +8,10 @@ import {
 } from "@/lib/api/middleware";
 import { ErrorCodes } from "@/lib/validations/api";
 import { prisma } from "@/lib/prisma";
-import {
-  getUserProfile,
-  checkRequiredAnswers,
-} from "@/lib/api/helpers";
+import { getUserProfile, checkRequiredAnswers } from "@/lib/api/helpers";
+
+// 動的レンダリングを明示的に指定
+export const dynamic = "force-dynamic";
 
 interface RouteParams {
   params: {

@@ -9,6 +9,9 @@ import {
 } from "@/lib/api/middleware";
 import { ErrorCodes } from "@/lib/validations/api";
 
+// 動的レンダリングを明示的に指定
+export const dynamic = "force-dynamic";
+
 // 履歴一覧取得API
 export async function GET(request: NextRequest) {
   try {
@@ -44,7 +47,10 @@ export async function GET(request: NextRequest) {
     const type = url.searchParams.get("type"); // QUESTIONNAIRE, RECOMMENDATION
 
     // クエリ条件を構築
-    const where: { userProfileId: string; type?: "QUESTIONNAIRE" | "RECOMMENDATION" } = { userProfileId: userProfile.id };
+    const where: {
+      userProfileId: string;
+      type?: "QUESTIONNAIRE" | "RECOMMENDATION";
+    } = { userProfileId: userProfile.id };
     if (type && (type === "QUESTIONNAIRE" || type === "RECOMMENDATION")) {
       where.type = type;
     }

@@ -10,6 +10,9 @@ import {
 import { ErrorCodes } from "@/lib/validations/api";
 import { getUserProfile, getSession } from "@/lib/api/helpers";
 
+// 動的レンダリングを明示的に指定
+export const dynamic = "force-dynamic";
+
 interface RouteParams {
   params: {
     sessionId: string;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Card,
@@ -18,7 +18,8 @@ import {
 import Link from "next/link";
 import { resendConfirmationEmail } from "./actions";
 
-export default function ConfirmPage() {
+// useSearchParamsを使用するコンポーネント
+function ConfirmContent() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [resendStatus, setResendStatus] = useState<{
@@ -223,5 +224,34 @@ export default function ConfirmPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+// メインコンポーネント
+export default function ConfirmPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 px-4 py-8 flex items-center justify-center">
+          <div className="w-full max-w-md">
+            <Card className="border-0 shadow-xl">
+              <CardHeader className="text-center pb-6">
+                <div className="mx-auto mb-4 p-3 bg-blue-100 rounded-full w-fit">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+                <CardTitle className="text-2xl font-bold text-gray-900">
+                  読み込み中...
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-600">ページを読み込んでいます</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      }
+    >
+      <ConfirmContent />
+    </Suspense>
   );
 }

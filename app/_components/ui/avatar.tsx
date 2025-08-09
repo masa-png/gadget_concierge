@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface AvatarProps {
@@ -40,11 +41,13 @@ export function AvatarImage({ src, alt, className }: AvatarImageProps) {
   }
 
   return (
-    <img
+    <Image
       src={src}
-      alt={alt}
-      className={cn("aspect-square h-full w-full", className)}
+      alt={alt || ""}
+      fill
+      className={cn("aspect-square h-full w-full object-cover", className)}
       onError={() => setHasError(true)}
+      unoptimized
     />
   );
 }

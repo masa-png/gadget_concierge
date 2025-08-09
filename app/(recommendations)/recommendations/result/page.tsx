@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { Card } from "@/app/_components/ui/card";
 import { Button } from "@/app/_components/ui/button";
 import { recommendationApi, ApiError } from "@/lib/api-client";
@@ -27,7 +28,8 @@ interface ResultPageProps {
   params: Record<string, never>;
 }
 
-const ResultPage: React.FC<ResultPageProps> = () => {
+// useSearchParamsを使用するコンポーネント
+function ResultContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("sessionId");
@@ -155,12 +157,15 @@ const ResultPage: React.FC<ResultPageProps> = () => {
               <Card key={recommendation.id} className="p-6">
                 <div className="flex flex-col md:flex-row gap-6">
                   {/* Image */}
-                  <div className="w-full md:w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <div className="w-full md:w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                     {recommendation.product.image_url ? (
-                      <img
+                      <Image
                         src={recommendation.product.image_url}
                         alt={recommendation.product.name}
+                        width={192}
+                        height={192}
                         className="w-full h-full object-cover rounded-lg"
+                        unoptimized
                       />
                     ) : (
                       <div className="text-gray-400 text-4xl">📱</div>
@@ -254,6 +259,29 @@ const ResultPage: React.FC<ResultPageProps> = () => {
         </div>
       </div>
     </div>
+  );
+}
+
+// メインコンポーネント
+const ResultPage: React.FC<ResultPageProps> = () => {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen w-full bg-[#f5f8fc] flex flex-col justify-center items-center">
+          <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg px-8 py-10">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                読み込み中...
+              </h2>
+              <p className="text-gray-500">ページを読み込んでいます</p>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <ResultContent />
+    </Suspense>
   );
 };
 
