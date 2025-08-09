@@ -69,7 +69,7 @@ export function LoginForm() {
         icon={Mail}
         error={errors.email?.message}
         disabled={isLoading}
-        register={register}
+        register={(name) => register(name as keyof LoginFormData)}
         required
       />
 
@@ -79,7 +79,7 @@ export function LoginForm() {
         placeholder="パスワードを入力"
         error={errors.password?.message}
         disabled={isLoading}
-        register={register}
+        register={(name) => register(name as keyof LoginFormData)}
         required
       />
 

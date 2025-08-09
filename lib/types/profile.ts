@@ -1,8 +1,8 @@
 // プロフィール関連の型定義
-export { 
+export {
   type UserProfile,
   type UserProfilePartial,
-  type UserProfileOptionalDefaults
+  type UserProfileOptionalDefaults,
 } from "@/lib/validations/generated";
 
 export {
@@ -10,5 +10,5 @@ export {
   type UpdateProfileData,
   type ProfileSelectData,
   type ProfileFormData,
-  type ProfileResponse
+  type ProfileResponse,
 } from "@/lib/validations/profile";
