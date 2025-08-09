@@ -9,6 +9,9 @@ import {
 } from "@/lib/api/middleware";
 import { ErrorCodes } from "@/lib/validations/api";
 
+// 動的レンダリングを明示的に指定
+export const dynamic = "force-dynamic";
+
 interface RouteParams {
   params: {
     sessionId: string;

@@ -12,6 +12,9 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { getUserProfile, getSession } from "@/lib/api/helpers";
 
+// 動的レンダリングを明示的に指定
+export const dynamic = "force-dynamic";
+
 // 回答保存のバリデーションスキーマ
 const createAnswerSchema = z
   .object({

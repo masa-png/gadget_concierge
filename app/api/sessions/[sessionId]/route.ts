@@ -9,6 +9,9 @@ import {
 } from "@/lib/api/middleware";
 import { ErrorCodes } from "@/lib/validations/api";
 
+// 動的レンダリングを明示的に指定
+export const dynamic = "force-dynamic";
+
 interface RouteParams {
   params: {
     sessionId: string;
@@ -201,7 +204,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     // 更新データを準備
-    const updateData: { status?: "IN_PROGRESS" | "COMPLETED" | "ABANDONED"; completed_at?: Date } = {};
+    const updateData: {
+      status?: "IN_PROGRESS" | "COMPLETED" | "ABANDONED";
+      completed_at?: Date;
+    } = {};
     if (status) {
       updateData.status = status as "IN_PROGRESS" | "COMPLETED" | "ABANDONED";
       if (status === "COMPLETED") {

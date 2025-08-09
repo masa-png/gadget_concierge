@@ -11,6 +11,9 @@ import { ErrorCodes } from "@/lib/validations/api";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/utils/supabase/server";
 
+// 動的レンダリングを明示的に指定
+export const dynamic = "force-dynamic";
+
 interface RouteParams {
   params: {
     categoryId: string;

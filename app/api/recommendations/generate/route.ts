@@ -11,6 +11,9 @@ import {
 import { ErrorCodes } from "@/lib/validations/api";
 import { z } from "zod";
 
+// 動的レンダリングを明示的に指定
+export const dynamic = "force-dynamic";
+
 // AIレコメンド生成のバリデーションスキーマ
 const generateRecommendationSchema = z.object({
   sessionId: z.string().cuid("有効なセッションIDを指定してください"),

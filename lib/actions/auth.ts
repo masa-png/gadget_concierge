@@ -8,8 +8,15 @@ import { createInitialProfile } from "@/lib/actions/profile";
 
 // エラーメッセージの日本語化
 function getLocalizedErrorMessage(error: unknown): string {
-  const message = typeof error === 'string' ? error : 
-    (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' ? error.message : "不明なエラーが発生しました");
+  const message =
+    typeof error === "string"
+      ? error
+      : error &&
+        typeof error === "object" &&
+        "message" in error &&
+        typeof error.message === "string"
+      ? error.message
+      : "不明なエラーが発生しました";
 
   // Supabase のエラーメッセージを日本語に変換
   if (message.includes("Invalid login credentials")) {
