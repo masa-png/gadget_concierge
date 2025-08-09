@@ -81,7 +81,7 @@ export async function createProfileAfterConfirmation() {
 
     return {
       success: true,
-      profile: result.profile,
+      profile: result.data,
     };
   } catch (error) {
     console.error("プロフィール作成エラー:", error);
