@@ -18,7 +18,11 @@ import {
 } from "@/app/_components/ui/card";
 import { Button } from "@/app/_components/ui/button";
 import { ImageUpload } from "@/app/_components/ui/image-upload";
-import { uploadProfileImage, deleteProfileImage } from "@/lib/utils/storage";
+import {
+  uploadProfileImage,
+  deleteProfileImage,
+  getProfileImageUrl,
+} from "@/lib/utils/storage";
 import { Save, X, Edit3 } from "lucide-react";
 
 interface ProfileEditFormProps {
@@ -39,11 +43,12 @@ export function ProfileEditForm({
   const form = useForm<UpdateProfileData>({
     resolver: zodResolver(UpdateProfileSchema),
     defaultValues: {
-      username: profile.username || "",
-      full_name: profile.full_name || "",
-      avatar_url: profile.avatar_url || "",
-      avatar_image_key: profile.avatar_image_key || "",
+      username: profile.username || undefined,
+      full_name: profile.full_name || undefined,
+      avatar_url: profile.avatar_url || undefined,
+      avatar_image_key: profile.avatar_image_key || undefined,
     },
+    mode: "onChange",
   });
 
   const handleSubmit = (data: UpdateProfileData) => {
@@ -51,7 +56,13 @@ export function ProfileEditForm({
       setIsUploading(true);
 
       try {
-        const updatedData = { ...data };
+        // データをクリーンアップ
+        const updatedData = {
+          username: data.username?.trim() || null,
+          full_name: data.full_name?.trim() || null,
+          avatar_url: data.avatar_url?.trim() || null,
+          avatar_image_key: data.avatar_image_key?.trim() || null,
+        };
 
         // 画像がアップロードされている場合の処理
         if (selectedFile) {
@@ -68,6 +79,7 @@ export function ProfileEditForm({
           }
 
           updatedData.avatar_image_key = uploadResult.key;
+          updatedData.avatar_url = getProfileImageUrl(uploadResult.key) || "";
         }
 
         // 1. 楽観的UI更新 - 即座に親コンポーネントに通知
@@ -98,17 +110,18 @@ export function ProfileEditForm({
           // フィールドエラーを設定
           if (result.fieldErrors) {
             Object.entries(result.fieldErrors).forEach(([field, errors]) => {
-              form.setError(field as keyof UpdateProfileData, {
-                message: errors[0],
-              });
+              if (errors && errors.length > 0) {
+                form.setError(field as keyof UpdateProfileData, {
+                  message: errors[0],
+                });
+              }
             });
           }
         }
-      } catch (error) {
+      } catch {
         // 6. エラー時: ロールバック
         onSave(profile);
         toast.error("更新に失敗しました");
-        console.error("Profile update error:", error);
       } finally {
         setIsUploading(false);
       }
@@ -135,7 +148,12 @@ export function ProfileEditForm({
         </CardTitle>
       </CardHeader>
       <CardContent className="p-8">
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <form
+          onSubmit={(e) => {
+            form.handleSubmit(handleSubmit)(e);
+          }}
+          className="space-y-6"
+        >
           <div className="space-y-6">
             {/* プロフィール画像アップロード */}
             <div>

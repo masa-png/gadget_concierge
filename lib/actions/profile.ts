@@ -23,6 +23,7 @@ export async function updateProfile(
 ): Promise<ActionResult<ProfileSelectData>> {
   try {
     // 1. 認証チェック
+    console.log("Calling updateProfile...");
     const supabase = await createClient();
     const {
       data: { user },
@@ -107,6 +108,7 @@ export async function updateProfile(
     revalidateTag(CACHE_KEYS.PROFILE);
     revalidatePath("/profile");
 
+    console.log("Server Action result:", profile);
     return {
       success: true,
       data: profile,
