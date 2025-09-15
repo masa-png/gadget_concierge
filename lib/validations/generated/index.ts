@@ -85,7 +85,7 @@ export const CategoryKeyPointScalarFieldEnumSchema = z.enum(['id','categoryId','
 
 export const CategoryCommonQuestionScalarFieldEnumSchema = z.enum(['id','categoryId','question','answer','created_at','updated_at']);
 
-export const ProductScalarFieldEnumSchema = z.enum(['id','name','description','price','rating','features','rakuten_url','image_url','created_at','updated_at']);
+export const ProductScalarFieldEnumSchema = z.enum(['id','name','description','price','rating','features','rakuten_url','rakuten_item_code','rakuten_genre_id','image_url','small_image_urls','medium_image_urls','review_count','review_average','shop_name','shop_code','shop_url','affiliate_url','shop_affiliate_url','affiliate_rate','availability','tax_flag','postage_flag','credit_card_flag','image_flag','point_rate','point_rate_start_time','point_rate_end_time','catch_copy','item_caption','created_at','updated_at','last_synced_at']);
 
 export const ProductCategoryScalarFieldEnumSchema = z.enum(['id','productId','categoryId','created_at','updated_at']);
 
@@ -562,9 +562,32 @@ export const ProductSchema = z.object({
   rating: z.instanceof(Prisma.Decimal, { message: "Field 'rating' must be a Decimal. Location: ['Models', 'Product']"}).nullable(),
   features: z.string(),
   rakuten_url: z.string().nullable(),
+  rakuten_item_code: z.string().nullable(),
+  rakuten_genre_id: z.string().nullable(),
   image_url: z.string().nullable(),
+  small_image_urls: z.string().array(),
+  medium_image_urls: z.string().array(),
+  review_count: z.number().int(),
+  review_average: z.instanceof(Prisma.Decimal, { message: "Field 'review_average' must be a Decimal. Location: ['Models', 'Product']"}).nullable(),
+  shop_name: z.string().nullable(),
+  shop_code: z.string().nullable(),
+  shop_url: z.string().nullable(),
+  affiliate_url: z.string().nullable(),
+  shop_affiliate_url: z.string().nullable(),
+  affiliate_rate: z.instanceof(Prisma.Decimal, { message: "Field 'affiliate_rate' must be a Decimal. Location: ['Models', 'Product']"}).nullable(),
+  availability: z.number().int(),
+  tax_flag: z.number().int(),
+  postage_flag: z.number().int(),
+  credit_card_flag: z.number().int(),
+  image_flag: z.number().int(),
+  point_rate: z.number().int(),
+  point_rate_start_time: z.coerce.date().nullable(),
+  point_rate_end_time: z.coerce.date().nullable(),
+  catch_copy: z.string().nullable(),
+  item_caption: z.string().nullable(),
   created_at: z.coerce.date(),
   updated_at: z.coerce.date(),
+  last_synced_at: z.coerce.date().nullable(),
 })
 
 export type Product = z.infer<typeof ProductSchema>
@@ -582,6 +605,15 @@ export type ProductPartial = z.infer<typeof ProductPartialSchema>
 
 export const ProductOptionalDefaultsSchema = ProductSchema.merge(z.object({
   id: z.string().cuid().optional(),
+  small_image_urls: z.string().array().optional(),
+  medium_image_urls: z.string().array().optional(),
+  review_count: z.number().int().optional(),
+  availability: z.number().int().optional(),
+  tax_flag: z.number().int().optional(),
+  postage_flag: z.number().int().optional(),
+  credit_card_flag: z.number().int().optional(),
+  image_flag: z.number().int().optional(),
+  point_rate: z.number().int().optional(),
   created_at: z.coerce.date().optional(),
   updated_at: z.coerce.date().optional(),
 }))

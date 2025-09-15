@@ -38,7 +38,5 @@ next-env.d.ts
 
 /app/generated/prisma
 
-DOCUMENT.md
 CLAUDE.md
-refactoring.md
-qa_implementation_todo.md
+rakuten_api_guide_jp.md
