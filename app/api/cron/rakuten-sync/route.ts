@@ -5,6 +5,32 @@ import crypto from "crypto";
 // 動的レンダリングを明示的に指定
 export const dynamic = "force-dynamic";
 
+// 楽天API商品アイテムの型定義
+interface RakutenItem {
+  itemName: string;
+  itemPrice: number;
+  itemUrl: string;
+  itemCode: string;
+  genreId: string;
+  itemCaption?: string;
+  catchcopy?: string;
+  reviewCount?: number;
+  reviewAverage?: number;
+  mediumImageUrls?: string[];
+  smallImageUrls?: string[];
+  shopName: string;
+  shopCode: string;
+  affiliateUrl?: string;
+  shopAffiliateUrl?: string;
+  affiliateRate?: number;
+  availability: number;
+  taxFlag?: number;
+  postageFlag?: number;
+  creditCardFlag?: number;
+  imageFlag?: number;
+  pointRate?: number;
+}
+
 // セキュリティ設定（段階的アプローチ）
 const SECURITY_CONFIG = {
   // 許可されたIPアドレス範囲（Vercel Cronサービス用）
@@ -188,7 +214,7 @@ function isValidCronRequest(request: NextRequest): {
           ) {
             console.warn(`⚠️ 開発環境: 認証トークンが無効 (IP: ${clientIP})`);
           }
-        } catch (error) {
+        } catch {
           console.warn(
             `⚠️ 開発環境: 認証トークンの形式エラー (IP: ${clientIP})`
           );
@@ -232,7 +258,7 @@ function isValidCronRequest(request: NextRequest): {
           securityLevel: "LOW",
         };
       }
-    } catch (error) {
+    } catch {
       return {
         isValid: false,
         reason: "認証トークンの形式が正しくありません",
@@ -314,7 +340,7 @@ async function fetchRakutenProducts(categoryId: string, page: number = 1) {
 }
 
 // 製品データ保存
-async function saveProductToDatabase(item: any, categoryId: string) {
+async function saveProductToDatabase(item: RakutenItem, categoryId: string) {
   const existingProduct = await prisma.product.findFirst({
     where: { rakuten_url: item.itemUrl },
   });
@@ -517,7 +543,16 @@ export async function GET(request: NextRequest) {
   let totalProcessed = 0;
   let totalSaved = 0;
   let totalUpdated = 0;
-  const results: { [key: string]: any } = {};
+  const results: Record<
+    string,
+    {
+      processed?: number;
+      saved?: number;
+      updated?: number;
+      totalItems?: number;
+      error?: string;
+    }
+  > = {};
 
   try {
     // 全カテゴリを順次処理
