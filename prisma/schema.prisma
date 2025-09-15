@@ -108,7 +108,7 @@ model CategoryCommonQuestion {
   @@map("category_common_questions")
 }
 
-// 製品
+// 製品（楽天API対応版）
 model Product {
   id          String   @id @default(cuid())
   name        String
@@ -116,16 +116,66 @@ model Product {
   price       Decimal? @db.Decimal(10, 2)
   rating      Decimal? @db.Decimal(3, 2) // 5.00まで
   features    String // 製品の特徴
-  rakuten_url String?
-  image_url   String?
-  created_at  DateTime @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  // 楽天関連フィールド
+  rakuten_url       String?
+  rakuten_item_code String? // 楽天商品コード
+  rakuten_genre_id  String? // 楽天ジャンルID
+
+  // 画像・メディア
+  image_url         String?
+  small_image_urls  String[] @default([]) // 64x64画像URL配列
+  medium_image_urls String[] @default([]) // 128x128画像URL配列
+
+  // レビュー・評価
+  review_count   Int?     @default(0) @db.Integer
+  review_average Decimal? @db.Decimal(3, 2)
+
+  // ショップ情報
+  shop_name String?
+  shop_code String?
+  shop_url  String?
+
+  // アフィリエイト
+  affiliate_url      String?
+  shop_affiliate_url String?
+  affiliate_rate     Decimal? @db.Decimal(4, 2) // 99.99%まで
+
+  // 販売条件・フラグ
+  availability     Int? @default(1) @db.Integer // 0:在庫なし, 1:在庫あり
+  tax_flag         Int? @default(0) @db.Integer // 0:税込み, 1:税抜き
+  postage_flag     Int? @default(1) @db.Integer // 0:送料無料, 1:送料別
+  credit_card_flag Int? @default(1) @db.Integer // 0:不可, 1:可能
+  image_flag       Int? @default(1) @db.Integer // 0:画像なし, 1:画像あり
+
+  // ポイント・特典
+  point_rate            Int?      @default(1) @db.Integer // ポイント倍率
+  point_rate_start_time DateTime? @db.Timestamptz(6) // ポイント倍率開始時間
+  point_rate_end_time   DateTime? @db.Timestamptz(6) // ポイント倍率終了時間
+
+  // 商品詳細情報
+  catch_copy   String? // キャッチコピー
+  item_caption String? @db.Text // 楽天商品説明
+
+  // システム管理
+  created_at     DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  last_synced_at DateTime? @db.Timestamptz(6) // 最終同期日時
 
   // リレーション
   productCategories ProductCategory[]
   productTags       ProductTag[]
   recommendations   Recommendation[]
 
+  // インデックス
+  @@index([rakuten_genre_id])
+  @@index([shop_code])
+  @@index([availability])
+  @@index([price])
+  @@index([rating])
+  @@index([review_count])
+  @@index([affiliate_rate])
+  @@index([last_synced_at])
   @@map("products")
 }
 

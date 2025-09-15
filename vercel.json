@@ -1,0 +1,14 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/rakuten-sync",
+      "schedule": "0 2 * * *"
+    }
+  ],
+  "functions": {
+    "app/api/cron/rakuten-sync/route.ts": {
+      "maxDuration": 300,
+      "memory": 1024
+    }
+  }
+}
