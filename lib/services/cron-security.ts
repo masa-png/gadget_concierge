@@ -65,11 +65,11 @@ export function validateCronRequest(request: NextRequest): AuthResult {
   // 2. 環境変数とヘッダー取得
   const cronSecret = process.env.CRON_SECRET;
   const nodeEnv = process.env.NODE_ENV;
-  const vercelCronHeader = request.headers.get("x-vercel-cron");
+  const vercelCronHeader = request.headers.get("user-agent");
   const authHeader = request.headers.get("authorization");
 
   // 3. 本番環境ではVercel Cronヘッダーを必須とする
-  if (nodeEnv === "production" && vercelCronHeader !== "1") {
+  if (nodeEnv === "production" && vercelCronHeader !== "vercel-cron/1.0") {
     return {
       isValid: false,
       reason: "Vercel Cronリクエストではありません",
