@@ -1,22 +1,5 @@
 // Cron job configuration
 export const SECURITY_CONFIG = {
-  // 許可されたIPアドレス範囲（Vercel Cronサービス用）
-  ALLOWED_IPS: [
-    "76.76.19.0/24", // Vercel infrastructure
-    "76.223.126.0/24", // Vercel edge network
-    "127.0.0.1", // localhost (開発用)
-    "::1", // IPv6 localhost
-  ],
-
-  // 許可されたUser-Agent（部分一致、緩い制限）
-  ALLOWED_USER_AGENTS: [
-    "Vercel-Cron",
-    "ProductRecommendationApp-Cron",
-    "curl", // 開発・テスト用
-    "PostmanRuntime", // 開発・テスト用
-    "node", // Node.js環境
-  ],
-
   // レート制限設定
   RATE_LIMIT: {
     MAX_REQUESTS: 10, // 最大リクエスト数
