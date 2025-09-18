@@ -85,7 +85,8 @@ export async function fetchRakutenProducts(
   const url = `${RAKUTEN_API_CONFIG.BASE_URL}/IchibaItem/Search/${
     RAKUTEN_API_CONFIG.VERSION
   }?${searchParams.toString()}`;
-
+  
+  console.log(url);
   console.log(`Cron: 楽天API呼び出し - カテゴリ:${categoryId}, ページ:${page}`);
 
   const response = await fetch(url, {
