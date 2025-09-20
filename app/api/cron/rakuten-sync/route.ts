@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
 import { RAKUTEN_API_CONFIG } from "@/lib/config/cron";
-import { validateCronRequest, logSecurityEvent } from "@/lib/services/cron-security";
+import {
+  validateCronRequest,
+  logSecurityEvent,
+} from "@/lib/services/cron-security";
 import { fetchRakutenProducts } from "@/lib/services/rakuten-api";
 import { saveProductToDatabase } from "@/lib/services/products";
 
@@ -76,7 +79,7 @@ export async function GET(request: NextRequest) {
       try {
         const apiResponse = await fetchRakutenProducts(categoryId, 1);
 
-        if (!apiResponse.items || apiResponse.items.length === 0) {
+        if (!apiResponse.Items || apiResponse.Items.length === 0) {
           console.log(`⚠️  ${categoryKey}: 商品が見つかりませんでした`);
           results[categoryKey] = { processed: 0, saved: 0, updated: 0 };
           continue;
@@ -86,7 +89,7 @@ export async function GET(request: NextRequest) {
         let categorySaved = 0;
         let categoryUpdated = 0;
 
-        for (const item of apiResponse.items) {
+        for (const item of apiResponse.Items) {
           try {
             const result = await saveProductToDatabase(item, categoryId);
 
