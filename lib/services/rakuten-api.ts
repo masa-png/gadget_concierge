@@ -106,8 +106,18 @@ export async function fetchRakutenProducts(
   }
 
   if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`楽天API エラー: ${response.status} - ${errorText}`);
     throw new Error(`Rakuten API request failed: ${response.status}`);
   }
 
-  return await response.json();
+  const jsonResponse = await response.json();
+  console.log(`楽天API レスポンス構造:`, {
+    hasItems: !!jsonResponse.items,
+    itemsLength: jsonResponse.items?.length || 0,
+    totalCount: jsonResponse.count,
+    error: jsonResponse.error
+  });
+
+  return jsonResponse;
 }
