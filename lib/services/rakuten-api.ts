@@ -27,7 +27,7 @@ export interface RakutenItem {
 }
 
 export interface RakutenApiResponse {
-  items: RakutenItem[];
+  Items: RakutenItem[];
   count?: number;
   page?: number;
   first?: number;
@@ -113,10 +113,11 @@ export async function fetchRakutenProducts(
 
   const jsonResponse = await response.json();
   console.log(`楽天API レスポンス構造:`, {
-    hasItems: !!jsonResponse.items,
-    itemsLength: jsonResponse.items?.length || 0,
+    hasItems: !!jsonResponse.Items,
+    itemsLength: jsonResponse.Items?.length || 0,
     totalCount: jsonResponse.count,
-    error: jsonResponse.error
+    pageCount: jsonResponse.pageCount,
+    error: jsonResponse.error,
   });
 
   return jsonResponse;
