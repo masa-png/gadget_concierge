@@ -66,25 +66,27 @@ export async function fetchRakutenProducts(
 
   await waitForRateLimit();
 
-  const searchParams = new URLSearchParams({
+  const baseParams = new URLSearchParams({
     applicationId: RAKUTEN_API_CONFIG.APP_ID,
     format: "json",
     formatVersion: "2",
     genreId: categoryId,
     page: String(page),
     hits: "30",
-    sort: encodeURIComponent("-reviewCount"), // UTF-8でURLエンコード
     availability: "1",
     imageFlag: "1",
   });
 
   if (RAKUTEN_API_CONFIG.AFFILIATE_ID) {
-    searchParams.append("affiliateId", RAKUTEN_API_CONFIG.AFFILIATE_ID);
+    baseParams.append("affiliateId", RAKUTEN_API_CONFIG.AFFILIATE_ID);
   }
+
+  // sortパラメータを手動でUTF-8エンコード
+  const sortParam = `sort=${encodeURIComponent("-reviewCount")}`;
 
   const url = `${RAKUTEN_API_CONFIG.BASE_URL}/IchibaItem/Search/${
     RAKUTEN_API_CONFIG.VERSION
-  }?${searchParams.toString()}`;
+  }?${baseParams.toString()}&${sortParam}`;
 
   console.log(url);
   console.log(`Cron: 楽天API呼び出し - カテゴリ:${categoryId}, ページ:${page}`);
