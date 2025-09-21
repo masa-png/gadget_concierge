@@ -31,7 +31,7 @@ export interface AIInputData {
   userProfile: {
     age?: number;
     gender?: string;
-    preferences?: Record<string, any>;
+    preferences?: Record<string, unknown>;
   };
   answers: ProcessedAnswer[];
 }
@@ -107,7 +107,7 @@ export interface ErrorLog {
   errorCode: string;
   message: string;
   stackTrace?: string;
-  context: Record<string, any>;
+  context: Record<string, unknown>;
 }
 
 /**
@@ -122,7 +122,7 @@ export interface AnswerProcessorService {
 export interface PromptGeneratorService {
   generatePrompt(
     categoryId: string,
-    userProfile: any,
+    userProfile: Record<string, unknown>,
     answers: ProcessedAnswer[]
   ): Promise<string>;
   getCategoryTemplate(categoryId: string): Promise<PromptTemplate>;
@@ -132,7 +132,7 @@ export interface MastraAIService {
   generateRecommendations(
     request: AIRecommendationRequest
   ): Promise<AIRecommendationResponse>;
-  validateResponse(response: any): boolean;
+  validateResponse(response: unknown): boolean;
 }
 
 export interface ProductMapperService {

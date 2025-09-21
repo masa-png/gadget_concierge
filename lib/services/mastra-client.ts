@@ -6,10 +6,7 @@
  */
 
 import { Mastra } from "@mastra/core";
-import {
-  AI_RECOMMENDATION_CONFIG,
-  validateAIConfig,
-} from "../config/ai-recommendations";
+import { validateAIConfig } from "../config/ai-recommendations";
 
 /**
  * Singleton Mastra client instance
