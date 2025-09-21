@@ -4,6 +4,8 @@
  * 要件1.2と1.3の実装を検証するためのユニットテスト
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { QuestionType } from "@prisma/client";
 import { AnswerProcessor } from "../answer-processor";
@@ -54,7 +56,7 @@ describe("AnswerProcessor", () => {
         },
       };
 
-      // プライベートメソッドをテストするためにany型でキャスト
+      // プライベートメソッドをテストするためにunknown型でキャスト
       const result = (answerProcessor as any).processAnswer(rawAnswer);
 
       expect(result).toEqual({
