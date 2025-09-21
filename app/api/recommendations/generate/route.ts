@@ -11,48 +11,332 @@ import {
 import { ErrorCodes } from "@/lib/validations/api";
 import { z } from "zod";
 
+// サービス統合のインポート（要件 4.1, 6.1, 6.2, 6.3, 6.4）
+import { createAnswerProcessor } from "@/lib/services/answer-processor";
+import { createPromptGenerator } from "@/lib/services/prompt-generator";
+import { mastraAIService } from "@/lib/services/mastra-ai-service";
+import { productMapperService } from "@/lib/services/product-mapper";
+import { recommendationSaverService } from "@/lib/services/recommendation-saver";
+import {
+  AI_RECOMMENDATION_CONFIG,
+  validateAIConfig,
+} from "@/lib/config/ai-recommendations";
+import {
+  handleAIRecommendationError,
+  createAIRecommendationError,
+} from "@/lib/errors/ai-recommendation-error";
+import { errorHandler } from "@/lib/services/error-handler";
+import {
+  aiRecommendationLogger,
+  monitoringService,
+} from "@/lib/services/logger";
+import type {
+  ProcessedAnswer,
+  ProductMatch,
+  RecommendationData,
+} from "@/lib/types/ai-recommendations";
+
 // 動的レンダリングを明示的に指定
 export const dynamic = "force-dynamic";
 
-// AIレコメンド生成のバリデーションスキーマ
+/**
+ * AIレコメンド生成のリクエストバリデーションスキーマ
+ * 要件 7.3, 7.4, 7.5: リクエストバリデーションとレスポンス形式
+ */
 const generateRecommendationSchema = z.object({
   sessionId: z.string().cuid("有効なセッションIDを指定してください"),
 });
 
-// AIレコメンド生成API
-export async function POST(request: NextRequest) {
+/**
+ * メインレコメンド生成フロー
+ * 要件 4.1, 6.1, 6.2, 6.3, 6.4: 各サービスクラスを統合したメイン処理フロー
+ *
+ * @param sessionId アンケートセッションID
+ * @param categoryId カテゴリID
+ * @param userProfile ユーザープロフィール
+ * @returns 生成されたレコメンドデータの配列
+ */
+async function executeRecommendationFlow(
+  sessionId: string,
+  categoryId: string,
+  userProfile: { id: string; userId: string; full_name: string | null }
+): Promise<RecommendationData[]> {
+  // パフォーマンストラッキング開始
+  aiRecommendationLogger.startTracking();
+
+  const context = {
+    sessionId,
+    categoryId,
+    userId: userProfile.userId,
+    userProfileId: userProfile.id,
+    operation: "executeRecommendationFlow",
+  };
+
+  aiRecommendationLogger.logRecommendationStart(context);
+
   try {
-    // レート制限チェック
+    // ステップ 1: 回答データの処理（要件 1.2, 1.3）
+    aiRecommendationLogger.logDebug("回答データ処理開始", context);
+
+    const answerProcessor = createAnswerProcessor();
+    const processedAnswers: ProcessedAnswer[] =
+      await answerProcessor.processSessionAnswers(sessionId);
+
+    aiRecommendationLogger.logDebug("回答データ処理完了", context, {
+      answersCount: processedAnswers.length,
+    });
+
+    // ステップ 2: AI用データ構造化（要件 1.3, 3.4）
+    aiRecommendationLogger.logDebug("AI用データ構造化開始", context);
+
+    const aiInputData = await answerProcessor.structureForAI(processedAnswers);
+
+    aiRecommendationLogger.logDebug("AI用データ構造化完了", context, {
+      categoryName: aiInputData.categoryName,
+    });
+
+    // ステップ 3: プロンプト生成（要件 1.4, 3.1, 3.2）
+    aiRecommendationLogger.logDebug("プロンプト生成開始", context);
+
+    const promptGenerator = createPromptGenerator();
+    const aiPrompt = await promptGenerator.generatePrompt(
+      categoryId,
+      {
+        fullName: userProfile.full_name,
+        userId: userProfile.userId,
+        preferences: aiInputData.userProfile.preferences,
+      },
+      processedAnswers
+    );
+
+    aiRecommendationLogger.logDebug("プロンプト生成完了", context, {
+      promptLength: aiPrompt.length,
+    });
+
+    // ステップ 4: AI レコメンド生成（要件 1.5, 2.1, 2.2）
+    aiRecommendationLogger.logAIRequestStart(context, aiPrompt.length);
+
+    const aiRequestStartTime = Date.now();
+    const aiResponse = await mastraAIService.generateRecommendations({
+      prompt: aiPrompt,
+      maxRecommendations: AI_RECOMMENDATION_CONFIG.maxRecommendations,
+      temperature: AI_RECOMMENDATION_CONFIG.aiTemperature,
+    });
+    const aiRequestDuration = Date.now() - aiRequestStartTime;
+
+    aiRecommendationLogger.logAIRequestComplete(
+      context,
+      aiRequestDuration,
+      aiResponse.recommendations.length
+    );
+
+    // ステップ 5: 商品マッピング（要件 1.6, 5.2, 5.3, 5.4, 5.5）
+    aiRecommendationLogger.logMappingStart(
+      context,
+      aiResponse.recommendations.length
+    );
+
+    const mappingStartTime = Date.now();
+    const productMatches: (ProductMatch | null)[] = [];
+
+    for (let index = 0; index < aiResponse.recommendations.length; index++) {
+      const aiRecommendation = aiResponse.recommendations[index];
+      try {
+        const match = await productMapperService.mapWithConfidenceEvaluation(
+          aiRecommendation,
+          categoryId
+        );
+        productMatches.push(match);
+
+        if (match) {
+          aiRecommendationLogger.logDebug(
+            `商品マッピング成功 ${index + 1}/${
+              aiResponse.recommendations.length
+            }`,
+            context,
+            {
+              productId: match.productId,
+              confidence: match.confidence,
+            }
+          );
+        } else {
+          aiRecommendationLogger.logWarning(
+            `商品マッピング失敗 ${index + 1}/${
+              aiResponse.recommendations.length
+            }`,
+            context,
+            {
+              aiProductName: aiRecommendation.productName,
+            }
+          );
+        }
+      } catch (mappingError) {
+        aiRecommendationLogger.logError(
+          `商品マッピングエラー ${index + 1}/${
+            aiResponse.recommendations.length
+          }`,
+          mappingError,
+          context,
+          {
+            aiProductName: aiRecommendation.productName,
+          }
+        );
+        productMatches.push(null);
+      }
+    }
+
+    const mappingDuration = Date.now() - mappingStartTime;
+    const mappingStats =
+      productMapperService.getMatchingStatistics(productMatches);
+
+    aiRecommendationLogger.logMappingComplete(
+      context,
+      mappingDuration,
+      mappingStats
+    );
+
+    // ステップ 6: レコメンドデータ準備（要件 1.7, 1.8, 3.3）
+    aiRecommendationLogger.logDebug("レコメンドデータ準備開始", context);
+
+    const recommendationData: RecommendationData[] = [];
+    let rank = 1;
+
+    for (let i = 0; i < aiResponse.recommendations.length; i++) {
+      const aiRecommendation = aiResponse.recommendations[i];
+      const productMatch = productMatches[i];
+
+      if (productMatch) {
+        recommendationData.push({
+          sessionId,
+          productId: productMatch.productId,
+          rank,
+          score: aiRecommendation.score,
+          reason: aiRecommendation.reason,
+        });
+        rank++;
+      }
+    }
+
+    aiRecommendationLogger.logDebug("レコメンドデータ準備完了", context, {
+      finalRecommendationsCount: recommendationData.length,
+    });
+
+    // ステップ 7: データベース保存（要件 1.7, 1.8, 2.3, 6.5）
+    aiRecommendationLogger.logSaveStart(context, recommendationData.length);
+
+    if (recommendationData.length === 0) {
+      throw createAIRecommendationError.noValidRecommendations(sessionId, {
+        aiRecommendationsCount: aiResponse.recommendations.length,
+        mappingStats,
+      });
+    }
+
+    const saveStartTime = Date.now();
+    await recommendationSaverService.saveRecommendations(recommendationData);
+    const saveDuration = Date.now() - saveStartTime;
+
+    aiRecommendationLogger.logSaveComplete(
+      context,
+      saveDuration,
+      recommendationData.length
+    );
+
+    // フロー完了ログ（要件 6.4: 正常生成時の件数と基本メタデータ記録）
+    aiRecommendationLogger.logRecommendationComplete(
+      context,
+      recommendationData.length,
+      {
+        aiRequestDuration,
+        mappingDuration,
+        saveDuration,
+        mappingStats,
+      }
+    );
+
+    return recommendationData;
+  } catch (error) {
+    // フローエラーログ（要件 6.3: エラー詳細とスタックトレースの記録）
+    aiRecommendationLogger.logError("レコメンドフロー失敗", error, context);
+
+    // エラーハンドリング（要件 2.1, 2.2, 2.3, 2.5）
+    throw handleAIRecommendationError(error, {
+      operation: "executeRecommendationFlow",
+      sessionId,
+      categoryId,
+    });
+  }
+}
+
+/**
+ * AIレコメンド生成API エンドポイント
+ * POST /api/recommendations/generate
+ *
+ * 要件 7.3: 既存のミドルウェア（requireAuth、rateLimit）を統合
+ * 要件 7.4: リクエストバリデーションとレスポンス形式を実装
+ * 要件 7.5: セキュリティヘッダーとエラーハンドリング
+ */
+export async function POST(request: NextRequest) {
+  const tracker = aiRecommendationLogger.startTracking();
+  let sessionId: string | undefined;
+  let userId: string | undefined;
+
+  try {
+    // レート制限チェック（要件 7.3: 既存ミドルウェア統合）
     const clientIP = request.ip || "unknown";
     if (!rateLimit(clientIP, 10, 60000)) {
+      aiRecommendationLogger.logWarning("レート制限超過", {}, { clientIP });
+
       return createErrorResponse(
-        "リクエスト数が上限を超えました",
+        "リクエスト数が上限を超えました。しばらく時間をおいてから再試行してください",
         429,
         ErrorCodes.RATE_LIMITED
       );
     }
 
-    // 認証チェック
+    // 認証チェック（要件 7.3: 既存ミドルウェア統合）
     const authResult = await requireAuth(request);
     if (!authResult.success) {
+      aiRecommendationLogger.logWarning("認証失敗", {}, { clientIP });
       return authResult.response;
     }
     const { user } = authResult;
+    userId = user.id;
 
-    // リクエストボディのバリデーション
+    // リクエストボディのバリデーション（要件 7.4: リクエストバリデーション）
     const validator = validateRequest(generateRecommendationSchema, "body");
     const bodyValidation = await validator(request);
     if (!bodyValidation.success) {
+      aiRecommendationLogger.logWarning(
+        "バリデーション失敗",
+        { userId },
+        { clientIP }
+      );
       return bodyValidation.response;
     }
 
-    const { sessionId } = bodyValidation.data;
+    const { sessionId: requestSessionId } = bodyValidation.data;
+    sessionId = requestSessionId;
+
+    // リクエスト開始ログ（要件 6.1: セッションIDとユーザーコンテキストのログ記録）
+    const requestContext = {
+      sessionId,
+      userId,
+      operation: "generateRecommendations",
+    };
+    aiRecommendationLogger.logRecommendationStart(requestContext);
 
     // ユーザープロフィールを取得
     const userProfile = await prisma.userProfile.findUnique({
       where: { userId: user.id },
     });
+
     if (!userProfile) {
+      aiRecommendationLogger.logError(
+        "ユーザープロフィール未発見",
+        new Error("User profile not found"),
+        requestContext
+      );
+
       return createErrorResponse(
         "ユーザープロフィールが見つかりません",
         404,
@@ -60,16 +344,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // セッション取得（完了済みのみ）
+    // セッション取得と所有権確認（完了済みのみ）
     const session = await prisma.questionnaireSession.findFirst({
       where: {
         id: sessionId,
         userProfileId: userProfile.id,
         status: "COMPLETED",
       },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
 
     if (!session) {
+      aiRecommendationLogger.logWarning(
+        "セッション未発見または未完了",
+        requestContext,
+        {
+          userProfileId: userProfile.id,
+        }
+      );
+
       return createErrorResponse(
         "指定されたセッションが見つからないか、完了していません",
         404,
@@ -77,39 +377,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // カテゴリ情報を取得
-    const category = await prisma.category.findUnique({
-      where: { id: session.categoryId as string },
-      select: { id: true, name: true },
-    });
-
-    // 回答一覧を取得
-    const answers = await prisma.answer.findMany({
-      where: { questionnaireSessionId: sessionId },
-      include: {
-        question: {
-          select: {
-            id: true,
-            text: true,
-            type: true,
-          },
-        },
-        option: {
-          select: {
-            id: true,
-            label: true,
-            value: true,
-          },
-        },
-      },
-    });
-
-    // 既存のレコメンドがあるかチェック
+    // 既存のレコメンドがあるかチェック（重複生成防止）
     const existingRecommendations = await prisma.recommendation.findMany({
       where: { questionnaireSessionId: sessionId },
     });
 
     if (existingRecommendations.length > 0) {
+      aiRecommendationLogger.logWarning("重複生成試行", requestContext, {
+        existingCount: existingRecommendations.length,
+      });
+
       return createErrorResponse(
         "このセッションのレコメンドは既に生成されています",
         400,
@@ -117,29 +394,83 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Mastra AI連携の実装
-    // 1. 回答データの構造化
-    // 2. カテゴリ別プロンプト生成
-    // 3. AIエージェントへのリクエスト送信
-    // 4. レスポンスパース・整形
-    // 5. レコメンド結果のDB保存
+    // 基本検証完了ログ
+    aiRecommendationLogger.logDebug("基本検証完了", requestContext, {
+      categoryId: session.categoryId,
+      categoryName: session.category?.name,
+    });
+
+    // AI設定の検証（要件 2.1: 設定値の検証と初期化）
+    try {
+      validateAIConfig();
+    } catch (configError) {
+      aiRecommendationLogger.logError(
+        "AI設定エラー",
+        configError,
+        requestContext
+      );
+
+      return setSecurityHeaders(
+        createErrorResponse(
+          "AI設定に問題があります。管理者にお問い合わせください",
+          500,
+          ErrorCodes.INTERNAL_ERROR
+        )
+      );
+    }
+
+    // メインフロー実行（要件 4.1, 6.1, 6.2, 6.3, 6.4: サービス統合とメインフロー）
+    const recommendations = await executeRecommendationFlow(
+      sessionId,
+      session.categoryId as string,
+      userProfile
+    );
+
+    // 成功レスポンス（要件 7.4: レスポンス形式、要件 7.5: セキュリティヘッダー）
+    const finalMetrics = tracker.finish();
 
     const responseData = {
       sessionId: session.id,
-      categoryName: category?.name || "不明なカテゴリ",
-      answerCount: answers.length,
-      message: "AIレコメンド生成を開始しました",
-      // TODO: 実際のAI生成結果を返す
-      recommendations: [],
+      categoryId: session.categoryId,
+      categoryName: session.category?.name || "不明なカテゴリ",
+      status: "completed",
+      message: "AIレコメンドが正常に生成されました",
+      recommendationsCount: recommendations.length,
+      processingTime: finalMetrics.duration,
     };
+
+    aiRecommendationLogger.logRecommendationComplete(
+      requestContext,
+      recommendations.length,
+      { processingTime: finalMetrics.duration }
+    );
+
+    // モニタリング統計を更新
+    monitoringService.recordSuccess(finalMetrics);
 
     return setSecurityHeaders(createSuccessResponse(responseData));
   } catch (error) {
-    console.error("Recommendation generation error:", error);
-    return createErrorResponse(
-      "AIレコメンド生成中にエラーが発生しました",
-      500,
-      ErrorCodes.INTERNAL_ERROR
+    const finalMetrics = tracker.finish();
+
+    // 新しいエラーハンドラーを使用（要件 2.1, 2.2, 2.3, 2.5）
+    const errorContext = {
+      operation: "generateRecommendations",
+      sessionId,
+      userId,
+      duration: finalMetrics.duration,
+    };
+
+    // エラーログとモニタリング統計の更新
+    aiRecommendationLogger.logError(
+      "レコメンド生成エラー",
+      error,
+      errorContext
     );
+
+    // 新しいエラーハンドラーでレスポンスを生成
+    const errorResponse = errorHandler.handle(error, errorContext);
+
+    // 要件 7.5: セキュリティヘッダーを設定
+    return setSecurityHeaders(errorResponse);
   }
 }

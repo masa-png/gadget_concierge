@@ -174,6 +174,16 @@ export const createAIRecommendationError = {
       { searchCriteria, ...context }
     ),
 
+  noValidRecommendations: (
+    sessionId: string,
+    context?: Record<string, unknown>
+  ) =>
+    new AIRecommendationError(
+      `有効なレコメンドが生成されませんでした: ${sessionId}`,
+      AIRecommendationErrorCode.NO_MATCHING_PRODUCTS,
+      { sessionId, ...context }
+    ),
+
   // 一般的なエラー
   networkError: (originalError: unknown, context?: Record<string, unknown>) =>
     new AIRecommendationError(
@@ -280,6 +290,7 @@ export function isTemporaryError(error: AIRecommendationError): boolean {
     AIRecommendationErrorCode.AI_REQUEST_TIMEOUT,
     AIRecommendationErrorCode.AI_RATE_LIMIT_EXCEEDED,
     AIRecommendationErrorCode.NETWORK_ERROR,
+    AIRecommendationErrorCode.DATABASE_CONNECTION_FAILED,
   ].includes(error.code);
 }
 
@@ -304,6 +315,8 @@ export function getHttpStatusCode(error: AIRecommendationError): number {
       return 429;
 
     case AIRecommendationErrorCode.DATABASE_CONNECTION_FAILED:
+      return 503;
+
     case AIRecommendationErrorCode.DATABASE_TRANSACTION_FAILED:
     case AIRecommendationErrorCode.PRODUCT_MAPPING_FAILED:
     case AIRecommendationErrorCode.CONFIGURATION_ERROR:
