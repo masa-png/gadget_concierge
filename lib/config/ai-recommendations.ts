@@ -5,77 +5,165 @@
  * including Mastra AI integration settings, recommendation parameters, and timeouts.
  */
 
-export const AI_RECOMMENDATION_CONFIG = {
-  // Maximum number of recommendations to generate per session
-  maxRecommendations: parseInt(process.env.MAX_RECOMMENDATIONS || "10"),
-
-  // Confidence threshold for product mapping (0.0 - 1.0)
-  mappingThreshold: parseFloat(
-    process.env.MAPPING_CONFIDENCE_THRESHOLD || "0.7"
-  ),
-
-  // AI temperature setting for response creativity (0.0 - 1.0)
-  aiTemperature: parseFloat(process.env.AI_TEMPERATURE || "0.3"),
-
-  // Timeout configurations in milliseconds
-  timeouts: {
-    // Timeout for AI API requests
-    aiRequest: parseInt(process.env.MASTRA_TIMEOUT || "30000"),
-    // Timeout for database operations
-    dbOperation: 10000,
-  },
-
-  // Mastra AI service configuration
-  mastra: {
-    apiKey: process.env.MASTRA_API_KEY,
-    apiUrl: process.env.MASTRA_API_URL || "https://api.mastra.ai",
-    timeout: parseInt(process.env.MASTRA_TIMEOUT || "30000"),
-  },
-} as const;
+import { z } from "zod";
 
 /**
- * Validates that all required configuration values are present
- * @throws Error if required configuration is missing
+ * 環境変数のバリデーションスキーマ
  */
-export function validateAIConfig(): void {
-  const requiredEnvVars = ["MASTRA_API_KEY"];
+const envSchema = z.object({
+  MASTRA_API_KEY: z.string().min(1, "MASTRA_API_KEY is required"),
+  MASTRA_API_URL: z.string().url().optional().default("https://api.mastra.ai"),
+  MASTRA_TIMEOUT: z.string().regex(/^\d+$/).optional().default("30000"),
+  MAX_RECOMMENDATIONS: z.string().regex(/^\d+$/).optional().default("10"),
+  MAPPING_CONFIDENCE_THRESHOLD: z
+    .string()
+    .regex(/^\d*\.?\d+$/)
+    .optional()
+    .default("0.7"),
+  AI_TEMPERATURE: z
+    .string()
+    .regex(/^\d*\.?\d+$/)
+    .optional()
+    .default("0.3"),
+});
 
-  const missingVars = requiredEnvVars.filter(
-    (varName) => !process.env[varName]
-  );
+/**
+ * 設定値のバリデーションスキーマ
+ */
+const configSchema = z.object({
+  maxRecommendations: z.number().int().min(1).max(50),
+  mappingThreshold: z.number().min(0).max(1),
+  aiTemperature: z.number().min(0).max(1),
+  timeouts: z.object({
+    aiRequest: z.number().int().min(1000).max(120000), // 1秒〜2分
+    dbOperation: z.number().int().min(1000).max(60000), // 1秒〜1分
+  }),
+  mastra: z.object({
+    apiKey: z.string().min(1),
+    apiUrl: z.string().url(),
+    timeout: z.number().int().min(1000).max(120000),
+  }),
+});
 
-  if (missingVars.length > 0) {
-    throw new Error(
-      `Missing required environment variables for AI recommendations: ${missingVars.join(
-        ", "
-      )}`
-    );
+/**
+ * 環境変数を解析して設定オブジェクトを作成
+ */
+function parseEnvironmentConfig() {
+  // 環境変数の検証
+  const env = envSchema.parse({
+    MASTRA_API_KEY: process.env.MASTRA_API_KEY,
+    MASTRA_API_URL: process.env.MASTRA_API_URL,
+    MASTRA_TIMEOUT: process.env.MASTRA_TIMEOUT,
+    MAX_RECOMMENDATIONS: process.env.MAX_RECOMMENDATIONS,
+    MAPPING_CONFIDENCE_THRESHOLD: process.env.MAPPING_CONFIDENCE_THRESHOLD,
+    AI_TEMPERATURE: process.env.AI_TEMPERATURE,
+  });
+
+  // 数値変換と設定オブジェクト作成
+  const config = {
+    maxRecommendations: parseInt(env.MAX_RECOMMENDATIONS),
+    mappingThreshold: parseFloat(env.MAPPING_CONFIDENCE_THRESHOLD),
+    aiTemperature: parseFloat(env.AI_TEMPERATURE),
+    timeouts: {
+      aiRequest: parseInt(env.MASTRA_TIMEOUT),
+      dbOperation: 10000, // 固定値
+    },
+    mastra: {
+      apiKey: env.MASTRA_API_KEY,
+      apiUrl: env.MASTRA_API_URL,
+      timeout: parseInt(env.MASTRA_TIMEOUT),
+    },
+  };
+
+  // 設定値の検証
+  return configSchema.parse(config);
+}
+
+/**
+ * AI推奨システムの設定（遅延初期化）
+ */
+let _config: z.infer<typeof configSchema> | null = null;
+
+/**
+ * AI推奨システムの設定を取得（遅延初期化）
+ */
+export const AI_RECOMMENDATION_CONFIG = new Proxy(
+  {} as z.infer<typeof configSchema>,
+  {
+    get(target, prop) {
+      if (!_config) {
+        _config = parseEnvironmentConfig();
+      }
+      return _config[prop as keyof typeof _config];
+    },
   }
+);
 
-  // Validate numeric ranges
-  if (
-    AI_RECOMMENDATION_CONFIG.mappingThreshold < 0 ||
-    AI_RECOMMENDATION_CONFIG.mappingThreshold > 1
-  ) {
-    throw new Error("MAPPING_CONFIDENCE_THRESHOLD must be between 0.0 and 1.0");
-  }
-
-  if (
-    AI_RECOMMENDATION_CONFIG.aiTemperature < 0 ||
-    AI_RECOMMENDATION_CONFIG.aiTemperature > 1
-  ) {
-    throw new Error("AI_TEMPERATURE must be between 0.0 and 1.0");
-  }
-
-  if (
-    AI_RECOMMENDATION_CONFIG.maxRecommendations < 1 ||
-    AI_RECOMMENDATION_CONFIG.maxRecommendations > 50
-  ) {
-    throw new Error("MAX_RECOMMENDATIONS must be between 1 and 50");
+/**
+ * 設定の初期化と検証を行う
+ * アプリケーション起動時に呼び出して設定の妥当性を確認
+ * @returns 初期化された設定オブジェクト
+ * @throws ZodError 設定値が無効な場合
+ */
+export function initializeAIConfig() {
+  try {
+    const config = parseEnvironmentConfig();
+    console.log("AI推奨システムの設定が正常に初期化されました");
+    return config;
+  } catch (error) {
+    console.error("AI推奨システムの設定初期化に失敗しました:", error);
+    throw error;
   }
 }
 
 /**
- * Type definitions for configuration
+ * 設定値の妥当性を検証する（レガシー互換性のため）
+ * @deprecated initializeAIConfig() を使用してください
  */
-export type AIRecommendationConfig = typeof AI_RECOMMENDATION_CONFIG;
+export function validateAIConfig(): void {
+  try {
+    parseEnvironmentConfig();
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const messages = error.errors.map(
+        (err) => `${err.path.join(".")}: ${err.message}`
+      );
+      throw new Error(`設定検証エラー: ${messages.join(", ")}`);
+    }
+    throw error;
+  }
+}
+
+/**
+ * 開発環境用の設定検証ヘルパー
+ * 設定値の詳細情報を出力
+ */
+export function debugAIConfig(): void {
+  if (process.env.NODE_ENV !== "development") {
+    return;
+  }
+
+  console.log("=== AI推奨システム設定情報 ===");
+  console.log(`最大推奨数: ${AI_RECOMMENDATION_CONFIG.maxRecommendations}`);
+  console.log(`マッピング閾値: ${AI_RECOMMENDATION_CONFIG.mappingThreshold}`);
+  console.log(`AI温度設定: ${AI_RECOMMENDATION_CONFIG.aiTemperature}`);
+  console.log(
+    `AIリクエストタイムアウト: ${AI_RECOMMENDATION_CONFIG.timeouts.aiRequest}ms`
+  );
+  console.log(
+    `DBオペレーションタイムアウト: ${AI_RECOMMENDATION_CONFIG.timeouts.dbOperation}ms`
+  );
+  console.log(`Mastra API URL: ${AI_RECOMMENDATION_CONFIG.mastra.apiUrl}`);
+  console.log(
+    `Mastra APIキー: ${
+      AI_RECOMMENDATION_CONFIG.mastra.apiKey ? "設定済み" : "未設定"
+    }`
+  );
+  console.log("===============================");
+}
+
+/**
+ * 型定義
+ */
+export type AIRecommendationConfig = z.infer<typeof configSchema>;
+export type AIEnvironmentConfig = z.infer<typeof envSchema>;

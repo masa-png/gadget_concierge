@@ -9,7 +9,21 @@ import {
   validateRequest,
 } from "@/lib/api/middleware";
 import { ErrorCodes } from "@/lib/validations/api";
-import { z } from "zod";
+
+// セキュリティとバリデーション機能のインポート
+import {
+  sanitizeInput,
+  validateApiKey,
+  withTimeout,
+  checkRateLimit,
+  maskSensitiveData,
+} from "@/lib/utils/security";
+import {
+  generateRecommendationRequestSchema,
+  validateSessionId,
+  validateAIRecommendationResponse,
+  validateProcessedAnswers,
+} from "@/lib/validations/ai-recommendations";
 
 // サービス統合のインポート（要件 4.1, 6.1, 6.2, 6.3, 6.4）
 import { createAnswerProcessor } from "@/lib/services/answer-processor";
@@ -19,7 +33,7 @@ import { productMapperService } from "@/lib/services/product-mapper";
 import { recommendationSaverService } from "@/lib/services/recommendation-saver";
 import {
   AI_RECOMMENDATION_CONFIG,
-  validateAIConfig,
+  initializeAIConfig,
 } from "@/lib/config/ai-recommendations";
 import {
   handleAIRecommendationError,
@@ -39,13 +53,7 @@ import type {
 // 動的レンダリングを明示的に指定
 export const dynamic = "force-dynamic";
 
-/**
- * AIレコメンド生成のリクエストバリデーションスキーマ
- * 要件 7.3, 7.4, 7.5: リクエストバリデーションとレスポンス形式
- */
-const generateRecommendationSchema = z.object({
-  sessionId: z.string().cuid("有効なセッションIDを指定してください"),
-});
+// バリデーションスキーマは lib/validations/ai-recommendations.ts から使用
 
 /**
  * メインレコメンド生成フロー
@@ -75,12 +83,17 @@ async function executeRecommendationFlow(
   aiRecommendationLogger.logRecommendationStart(context);
 
   try {
-    // ステップ 1: 回答データの処理（要件 1.2, 1.3）
+    // ステップ 1: セキュリティ強化された回答データの処理（要件 1.2, 1.3, 7.5）
     aiRecommendationLogger.logDebug("回答データ処理開始", context);
 
     const answerProcessor = createAnswerProcessor();
+    const rawProcessedAnswers = await answerProcessor.processSessionAnswers(
+      sessionId
+    );
+
+    // 回答データのセキュリティ検証
     const processedAnswers: ProcessedAnswer[] =
-      await answerProcessor.processSessionAnswers(sessionId);
+      validateProcessedAnswers(rawProcessedAnswers);
 
     aiRecommendationLogger.logDebug("回答データ処理完了", context, {
       answersCount: processedAnswers.length,
@@ -113,15 +126,24 @@ async function executeRecommendationFlow(
       promptLength: aiPrompt.length,
     });
 
-    // ステップ 4: AI レコメンド生成（要件 1.5, 2.1, 2.2）
+    // ステップ 4: セキュリティ強化されたAI レコメンド生成（要件 1.5, 2.1, 2.2, 7.5）
     aiRecommendationLogger.logAIRequestStart(context, aiPrompt.length);
 
     const aiRequestStartTime = Date.now();
-    const aiResponse = await mastraAIService.generateRecommendations({
-      prompt: aiPrompt,
-      maxRecommendations: AI_RECOMMENDATION_CONFIG.maxRecommendations,
-      temperature: AI_RECOMMENDATION_CONFIG.aiTemperature,
-    });
+
+    // タイムアウト制御付きAI呼び出し
+    const rawAiResponse = await withTimeout(
+      mastraAIService.generateRecommendations({
+        prompt: aiPrompt,
+        maxRecommendations: AI_RECOMMENDATION_CONFIG.maxRecommendations,
+        temperature: AI_RECOMMENDATION_CONFIG.aiTemperature,
+      }),
+      AI_RECOMMENDATION_CONFIG.timeouts.aiRequest,
+      "AI推奨生成リクエストがタイムアウトしました"
+    );
+
+    // AIレスポンスのセキュリティ検証
+    const aiResponse = validateAIRecommendationResponse(rawAiResponse);
     const aiRequestDuration = Date.now() - aiRequestStartTime;
 
     aiRecommendationLogger.logAIRequestComplete(
@@ -281,13 +303,37 @@ export async function POST(request: NextRequest) {
   let userId: string | undefined;
 
   try {
-    // レート制限チェック（要件 7.3: 既存ミドルウェア統合）
+    // セキュリティ強化されたレート制限チェック（要件 7.5: セキュリティ機能）
     const clientIP = request.ip || "unknown";
-    if (!rateLimit(clientIP, 10, 60000)) {
-      aiRecommendationLogger.logWarning("レート制限超過", {}, { clientIP });
+
+    try {
+      // 既存のミドルウェアレート制限
+      if (!rateLimit(clientIP, 10, 60000)) {
+        aiRecommendationLogger.logWarning("レート制限超過", {}, { clientIP });
+        return createErrorResponse(
+          "リクエスト数が上限を超えました。しばらく時間をおいてから再試行してください",
+          429,
+          ErrorCodes.RATE_LIMITED
+        );
+      }
+
+      // 追加のセキュリティレート制限（より厳格）
+      checkRateLimit(`ai-recommendations:${clientIP}`, 5, 300000); // 5分間で5回まで
+    } catch (rateLimitError) {
+      aiRecommendationLogger.logWarning(
+        "セキュリティレート制限超過",
+        {},
+        {
+          clientIP,
+          error:
+            rateLimitError instanceof Error
+              ? rateLimitError.message
+              : String(rateLimitError),
+        }
+      );
 
       return createErrorResponse(
-        "リクエスト数が上限を超えました。しばらく時間をおいてから再試行してください",
+        "AI推奨生成の利用制限に達しました。しばらく時間をおいてから再試行してください",
         429,
         ErrorCodes.RATE_LIMITED
       );
@@ -302,8 +348,11 @@ export async function POST(request: NextRequest) {
     const { user } = authResult;
     userId = user.id;
 
-    // リクエストボディのバリデーション（要件 7.4: リクエストバリデーション）
-    const validator = validateRequest(generateRecommendationSchema, "body");
+    // セキュリティ強化されたリクエストバリデーション（要件 7.4, 7.5）
+    const validator = validateRequest(
+      generateRecommendationRequestSchema,
+      "body"
+    );
     const bodyValidation = await validator(request);
     if (!bodyValidation.success) {
       aiRecommendationLogger.logWarning(
@@ -314,8 +363,38 @@ export async function POST(request: NextRequest) {
       return bodyValidation.response;
     }
 
-    const { sessionId: requestSessionId } = bodyValidation.data;
-    sessionId = requestSessionId;
+    const { sessionId: rawSessionId } = bodyValidation.data;
+
+    // 入力サニタイゼーション（要件 7.5: 入力サニタイゼーション）
+    try {
+      const sanitizedSessionId = sanitizeInput(rawSessionId, {
+        maxLength: 50,
+        allowedChars: "a-zA-Z0-9_-",
+        removePII: true,
+        removeHtml: true,
+      });
+
+      // セッションIDの追加検証
+      sessionId = validateSessionId(sanitizedSessionId);
+    } catch (sanitizationError) {
+      aiRecommendationLogger.logWarning(
+        "入力サニタイゼーション失敗",
+        { userId },
+        {
+          clientIP,
+          error:
+            sanitizationError instanceof Error
+              ? sanitizationError.message
+              : String(sanitizationError),
+        }
+      );
+
+      return createErrorResponse(
+        "無効な入力データが検出されました",
+        400,
+        ErrorCodes.VALIDATION_ERROR
+      );
+    }
 
     // リクエスト開始ログ（要件 6.1: セッションIDとユーザーコンテキストのログ記録）
     const requestContext = {
@@ -400,9 +479,19 @@ export async function POST(request: NextRequest) {
       categoryName: session.category?.name,
     });
 
-    // AI設定の検証（要件 2.1: 設定値の検証と初期化）
+    // セキュリティ強化されたAI設定の検証（要件 2.1, 7.5）
     try {
-      validateAIConfig();
+      // 設定の初期化と検証
+      initializeAIConfig();
+
+      // APIキーの安全性検証
+      validateApiKey(AI_RECOMMENDATION_CONFIG.mastra.apiKey, "Mastra API Key");
+
+      aiRecommendationLogger.logDebug("AI設定検証完了", requestContext, {
+        mastraUrl: AI_RECOMMENDATION_CONFIG.mastra.apiUrl,
+        maxRecommendations: AI_RECOMMENDATION_CONFIG.maxRecommendations,
+        apiKeyMasked: maskSensitiveData(AI_RECOMMENDATION_CONFIG.mastra.apiKey),
+      });
     } catch (configError) {
       aiRecommendationLogger.logError(
         "AI設定エラー",
@@ -419,11 +508,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // メインフロー実行（要件 4.1, 6.1, 6.2, 6.3, 6.4: サービス統合とメインフロー）
-    const recommendations = await executeRecommendationFlow(
-      sessionId,
-      session.categoryId as string,
-      userProfile
+    // タイムアウト制御付きメインフロー実行（要件 4.1, 6.1, 6.2, 6.3, 6.4, 7.5）
+    const recommendations = await withTimeout(
+      executeRecommendationFlow(
+        sessionId,
+        session.categoryId as string,
+        userProfile
+      ),
+      AI_RECOMMENDATION_CONFIG.timeouts.aiRequest + 30000, // AI処理時間 + 30秒のバッファ
+      "AI推奨生成処理がタイムアウトしました"
     );
 
     // 成功レスポンス（要件 7.4: レスポンス形式、要件 7.5: セキュリティヘッダー）
