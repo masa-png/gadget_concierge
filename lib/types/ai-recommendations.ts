@@ -146,6 +146,21 @@ export interface ProductMapperService {
     categoryId: string,
     priceRange?: { min: number; max: number }
   ): Promise<ProductMatch[]>;
+  performFallbackMatching(
+    aiRecommendation: AIRecommendationItem,
+    categoryId: string
+  ): Promise<ProductMatch | null>;
+  mapWithConfidenceEvaluation(
+    aiRecommendation: AIRecommendationItem,
+    categoryId: string
+  ): Promise<ProductMatch | null>;
+  getMatchingStatistics(matches: (ProductMatch | null)[]): {
+    totalAttempts: number;
+    successfulMatches: number;
+    highConfidenceMatches: number;
+    fallbackMatches: number;
+    successRate: number;
+  };
 }
 
 export interface RecommendationSaverService {

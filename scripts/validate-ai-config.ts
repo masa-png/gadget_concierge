@@ -34,9 +34,9 @@ try {
   console.log("🔍 Running validation...");
   validateAIConfig();
   console.log("✅ Configuration validation passed!");
-} catch (error: any) {
+} catch (error: unknown) {
   console.error("❌ Configuration validation failed:");
-  console.error(`   ${error.message}`);
+  console.error(`   ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 }
 

@@ -8,6 +8,7 @@
 
 import { getMastraClient } from "./mastra-client";
 import { AI_RECOMMENDATION_CONFIG } from "../config/ai-recommendations";
+import type { Mastra } from "@mastra/core";
 import {
   AIRecommendationRequest,
   AIRecommendationResponse,
@@ -248,7 +249,7 @@ export class MastraAIServiceImpl implements MastraAIService {
    * @returns 生のAIレスポンス
    */
   private async performMastraRequest(
-    mastraClient: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    mastraClient: Mastra,
     request: AIRecommendationRequest,
     signal: AbortSignal
   ): Promise<unknown> {

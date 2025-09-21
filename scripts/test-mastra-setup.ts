@@ -22,9 +22,9 @@ try {
     console.log("✅ Mastra client initialized successfully!");
     console.log(`Client type: ${typeof client}`);
   }
-} catch (error: any) {
+} catch (error: unknown) {
   console.error("❌ Mastra setup failed:");
-  console.error(`   ${error.message}`);
+  console.error(`   ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 }
 
