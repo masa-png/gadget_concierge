@@ -167,7 +167,13 @@ const useQuestionFlow = () => {
         throw createQuestionnaireError.sessionNotFound();
       }
 
+      // セッションを完了状態に更新
       const response = await completeSession(sessionId);
+
+      // AIレコメンド生成を開始
+      const { recommendationApi } = await import("@/lib/api-client");
+      await recommendationApi.generate(sessionId);
+
       updateState({ isCompleted: true });
       return response;
     } catch (error) {
