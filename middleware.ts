@@ -9,6 +9,6 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // /, /privacy, /terms, /api/categories, /api/cron を除外し、それ以外のAPIと全ページを認証対象に
-    "/((?!_next/static|_next/image|favicon.ico|api/categories|api/cron/rakuten-sync|privacy$|terms$|^/$|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/cron/rakuten-sync|privacy$|terms$|^/$|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

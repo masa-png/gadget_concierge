@@ -262,7 +262,7 @@ export const recommendationApi = {
             price: number;
             rating: number;
             features: string;
-            rakuten_url: string;
+            affiliate_url: string;
             image_url: string;
           };
         }>;

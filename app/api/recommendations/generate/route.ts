@@ -117,23 +117,188 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Mastra AI連携の実装
-    // 1. 回答データの構造化
-    // 2. カテゴリ別プロンプト生成
-    // 3. AIエージェントへのリクエスト送信
-    // 4. レスポンスパース・整形
-    // 5. レコメンド結果のDB保存
+    // Mastra AI連携の実装
 
-    const responseData = {
-      sessionId: session.id,
-      categoryName: category?.name || "不明なカテゴリ",
-      answerCount: answers.length,
-      message: "AIレコメンド生成を開始しました",
-      // TODO: 実際のAI生成結果を返す
-      recommendations: [],
+    // 1. 回答データの構造化
+    const answerSummary = answers.map((answer) => ({
+      question: answer.question.text,
+      answer: answer.option?.label || answer.text_value || "",
+      type: answer.question.type,
+    }));
+
+    // 2. カテゴリ別プロンプト生成
+    const promptData = {
+      category: category?.name || "不明なカテゴリ",
+      answers: answerSummary,
+      userProfile: {
+        // 必要に応じてユーザープロフィール情報を追加
+      },
     };
 
-    return setSecurityHeaders(createSuccessResponse(responseData));
+    // 3. 該当カテゴリの製品データを取得
+    const products = await prisma.product.findMany({
+      where: {
+        productCategories: {
+          some: {
+            categoryId: session.categoryId as string,
+          },
+        },
+      },
+      take: 20, // 上位20製品を対象とする
+      orderBy: { rating: "desc" },
+    });
+
+    // 4. AIエージェントへのリクエスト送信
+    try {
+      const { mastra } = await import("@/mastra");
+      const agent = mastra.getAgent("gadgetRecommendationAgent");
+
+      const aiPrompt = `
+以下のユーザー情報に基づいて、最適なガジェットを推奨してください。
+
+## カテゴリ
+${promptData.category}
+
+## ユーザーの回答
+${promptData.answers
+  .map((a) => `Q: ${a.question}\nA: ${a.answer}`)
+  .join("\n\n")}
+
+## 利用可能な製品リスト
+${products
+  .map(
+    (p) => `
+製品名: ${p.name}
+ショップ: ${p.shop_name || "不明"}
+価格: ${p.price}円
+評価: ${p.rating}/5
+特徴: ${p.features}
+説明: ${p.description || ""}
+`
+  )
+  .join("\n---\n")}
+
+上記の製品から、ユーザーに最も適した3つを選んで推奨してください。
+各製品について、推奨理由を具体的に説明してください。
+`;
+
+      const aiResponse = await agent.generate([
+        { role: "user", content: aiPrompt },
+      ]);
+
+      // 5. AI応答の解析・パース
+      let aiRecommendations;
+      try {
+        // AI応答からJSONを抽出
+        const responseText = aiResponse.text || "";
+        const jsonMatch = responseText.match(/```json\s*(\{[\s\S]*?\})\s*```/);
+
+        if (jsonMatch) {
+          aiRecommendations = JSON.parse(jsonMatch[1]);
+        } else {
+          // JSONマーカーがない場合、全体をJSONとして解析を試行
+          aiRecommendations = JSON.parse(responseText);
+        }
+
+        // 応答形式の検証
+        if (
+          !aiRecommendations.recommendations ||
+          !Array.isArray(aiRecommendations.recommendations)
+        ) {
+          throw new Error("Invalid AI response format");
+        }
+      } catch (parseError) {
+        console.warn(
+          "AI応答の解析に失敗、フォールバック処理を実行:",
+          parseError
+        );
+        // パースエラーの場合はフォールバック処理
+        throw new Error("AI_PARSE_ERROR");
+      }
+
+      // 6. AI推奨に基づいてレコメンド結果をDB保存
+      const savedRecommendations = await Promise.all(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        aiRecommendations.recommendations.map(async (aiRec: any) => {
+          // 製品名でマッチング
+          const matchedProduct = products.find(
+            (p) => p.name === aiRec.productName
+          );
+
+          if (!matchedProduct) {
+            console.warn(`AI推奨製品が見つかりません: ${aiRec.productName}`);
+            return null;
+          }
+
+          return await prisma.recommendation.create({
+            data: {
+              questionnaireSessionId: sessionId,
+              productId: matchedProduct.id,
+              rank: aiRec.rank || 1,
+              score: aiRec.score || 0.8,
+              reason:
+                aiRec.reason ||
+                `${matchedProduct.name}があなたに推奨されました。`,
+            },
+          });
+        })
+      );
+
+      // null値を除外
+      const validRecommendations = savedRecommendations.filter(
+        (rec) => rec !== null
+      );
+
+      return setSecurityHeaders(
+        createSuccessResponse({
+          sessionId: session.id,
+          categoryName: category?.name || "不明なカテゴリ",
+          answerCount: answers.length,
+          message: "AIレコメンド生成が完了しました",
+          recommendations: validRecommendations.map((rec) => ({
+            id: rec.id,
+            rank: rec.rank,
+            score: rec.score,
+            reason: rec.reason,
+          })),
+          aiResponse: aiResponse.text, // デバッグ用
+        })
+      );
+    } catch (aiError) {
+      console.error("AI generation error:", aiError);
+      // AI生成エラーの場合、フォールバック処理
+      const fallbackRecommendations = products
+        .slice(0, 3)
+        .map(async (product, index) => {
+          return await prisma.recommendation.create({
+            data: {
+              questionnaireSessionId: sessionId,
+              productId: product.id,
+              rank: index + 1,
+              score: Math.max(0.6, 0.9 - index * 0.1),
+              reason: `${product.name}は高評価の製品です。${category?.name}カテゴリで人気があり、多くのユーザーに選ばれています。`,
+            },
+          });
+        });
+
+      const savedFallbackRecs = await Promise.all(fallbackRecommendations);
+
+      return setSecurityHeaders(
+        createSuccessResponse({
+          sessionId: session.id,
+          categoryName: category?.name || "不明なカテゴリ",
+          answerCount: answers.length,
+          message: "レコメンド生成が完了しました（基本推奨）",
+          recommendations: savedFallbackRecs.map((rec) => ({
+            id: rec.id,
+            rank: rec.rank,
+            score: rec.score,
+            reason: rec.reason,
+          })),
+          error: "AI生成でエラーが発生したため、基本推奨を使用しました",
+        })
+      );
+    }
   } catch (error) {
     console.error("Recommendation generation error:", error);
     return createErrorResponse(

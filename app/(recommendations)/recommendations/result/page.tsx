@@ -19,7 +19,7 @@ interface Recommendation {
     price: number;
     rating: number;
     features: string;
-    rakuten_url: string;
+    affiliate_url: string;
     image_url: string;
   };
 }
@@ -37,6 +37,7 @@ function ResultContent() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     if (!sessionId) {
@@ -53,9 +54,35 @@ function ResultContent() {
 
         // レコメンド結果を取得
         const response = await recommendationApi.get(sessionId);
+
+        // レコメンドが存在しない場合、生成中の可能性
+        if (
+          !response.data.recommendations ||
+          response.data.recommendations.length === 0
+        ) {
+          setIsGenerating(true);
+          // 3秒後にリトライ
+          setTimeout(() => {
+            fetchRecommendations();
+          }, 3000);
+          return;
+        }
+
         setRecommendations(response.data.recommendations);
+        setIsGenerating(false);
       } catch (err) {
         console.error("レコメンド取得エラー:", err);
+
+        // 404エラーの場合、レコメンドがまだ生成されていない可能性
+        if (err instanceof ApiError && err.status === 404) {
+          setIsGenerating(true);
+          // 3秒後にリトライ
+          setTimeout(() => {
+            fetchRecommendations();
+          }, 3000);
+          return;
+        }
+
         setError(
           err instanceof ApiError
             ? err.message
@@ -63,6 +90,7 @@ function ResultContent() {
             ? err.message
             : "予期しないエラーが発生しました"
         );
+        setIsGenerating(false);
       } finally {
         setIsLoading(false);
       }
@@ -86,17 +114,19 @@ function ResultContent() {
     }).format(price);
   };
 
-  if (isLoading) {
+  if (isLoading || isGenerating) {
     return (
       <div className="min-h-screen w-full bg-[#f5f8fc] flex flex-col justify-center items-center">
         <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg px-8 py-10">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              結果を生成中...
+              {isGenerating ? "レコメンドを生成中..." : "結果を生成中..."}
             </h2>
             <p className="text-gray-500">
-              あなたに最適なガジェットを分析しています
+              {isGenerating
+                ? "あなたに最適なガジェットを分析しています。しばらくお待ちください。"
+                : "あなたに最適なガジェットを分析しています"}
             </p>
           </div>
         </div>
@@ -195,7 +225,7 @@ function ResultContent() {
                     </p>
 
                     {/* Reason */}
-                    <div>
+                    <div className="mb-4">
                       <h4 className="font-semibold text-gray-900 mb-2">
                         おすすめの理由
                       </h4>
@@ -203,6 +233,20 @@ function ResultContent() {
                         {recommendation.reason}
                       </p>
                     </div>
+
+                    {/* Rakuten Link Button */}
+                    <Button
+                      onClick={() =>
+                        window.open(
+                          recommendation.product.affiliate_url,
+                          "_blank"
+                        )
+                      }
+                      variant="default"
+                      className="w-full md:w-auto"
+                    >
+                      楽天で詳細を見る
+                    </Button>
                   </div>
                 </div>
               </Card>
