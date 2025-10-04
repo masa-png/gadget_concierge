@@ -268,6 +268,14 @@ ${products
         (rec) => rec !== null
       );
 
+      // レコメンド生成成功時にrecommendationCountをインクリメント
+      if (validRecommendations.length > 0) {
+        await prisma.userProfile.update({
+          where: { id: userProfile.id },
+          data: { recommendationCount: { increment: 1 } },
+        });
+      }
+
       return setSecurityHeaders(
         createSuccessResponse({
           sessionId: session.id,
@@ -301,6 +309,14 @@ ${products
         });
 
       const savedFallbackRecs = await Promise.all(fallbackRecommendations);
+
+      // フォールバック推奨生成成功時にもrecommendationCountをインクリメント
+      if (savedFallbackRecs.length > 0) {
+        await prisma.userProfile.update({
+          where: { id: userProfile.id },
+          data: { recommendationCount: { increment: 1 } },
+        });
+      }
 
       return setSecurityHeaders(
         createSuccessResponse({
