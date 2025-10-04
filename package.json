@@ -18,10 +18,10 @@
   "dependencies": {
     "@ai-sdk/google": "^1.2.22",
     "@hookform/resolvers": "^3.10.0",
-    "@mastra/core": "^0.18.0",
-    "@mastra/libsql": "^0.14.3",
-    "@mastra/loggers": "^0.10.13",
-    "@mastra/memory": "^0.15.3",
+    "@mastra/core": "^0.20.0",
+    "@mastra/libsql": "^0.15.1",
+    "@mastra/loggers": "^0.10.15",
+    "@mastra/memory": "^0.15.5",
     "@prisma/client": "^6.10.1",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.50.0",
@@ -30,7 +30,7 @@
     "cmdk": "1.0.4",
     "date-fns": "4.1.0",
     "lucide-react": "^0.522.0",
-    "next": "14.2.30",
+    "next": "^14.2.33",
     "react": "^18",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^18",
@@ -41,7 +41,7 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.1.0",
-    "zod": "^3.25.67"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^20",

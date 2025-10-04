@@ -1,11 +1,12 @@
-import { Agent } from '@mastra/core/agent';
-import { google } from '@ai-sdk/google';
+import { Agent } from "@mastra/core/agent";
+import { google } from "@ai-sdk/google";
 
 export const gadgetRecommendationAgent = new Agent({
-  id: 'gadgetRecommendationAgent',
-  name: 'ガジェットレコメンドエージェント',
-  description: 'ユーザーのアンケート回答に基づいて最適なガジェットを推奨するAIエージェント',
-  model: google('gemini-1.5-flash'),
+  id: "gadgetRecommendationAgent",
+  name: "ガジェットレコメンドエージェント",
+  description:
+    "ユーザーのアンケート回答に基づいて最適なガジェットを推奨するAIエージェント",
+  model: google("gemini-2.0-flash"),
   instructions: `
 あなたはガジェット選択の専門家です。ユーザーのアンケート回答を基に、最適なガジェットを推奨してください。
 

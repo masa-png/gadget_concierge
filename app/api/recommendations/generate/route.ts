@@ -148,6 +148,24 @@ export async function POST(request: NextRequest) {
       orderBy: { rating: "desc" },
     });
 
+    console.log("Products for recommendation:", products);
+
+    if (products.length === 0) {
+      return createErrorResponse(
+        "指定されたカテゴリに製品が登録されていません",
+        400,
+        ErrorCodes.VALIDATION_ERROR
+      );
+    }
+
+    if (answers.length === 0) {
+      return createErrorResponse(
+        "このセッションには回答が存在しません",
+        400,
+        ErrorCodes.VALIDATION_ERROR
+      );
+    }
+
     // 4. AIエージェントへのリクエスト送信
     try {
       const { mastra } = await import("@/mastra");
@@ -182,9 +200,10 @@ ${products
 各製品について、推奨理由を具体的に説明してください。
 `;
 
-      const aiResponse = await agent.generate([
+      const aiResponse = await agent.generateLegacy([
         { role: "user", content: aiPrompt },
       ]);
+      console.log(aiResponse);
 
       // 5. AI応答の解析・パース
       let aiRecommendations;
@@ -226,7 +245,7 @@ ${products
           );
 
           if (!matchedProduct) {
-            console.warn(`AI推奨製品が見つかりません: ${aiRec.productName}`);
+            console.warn(`推奨製品が見つかりません: ${aiRec.productName}`);
             return null;
           }
 
@@ -254,7 +273,7 @@ ${products
           sessionId: session.id,
           categoryName: category?.name || "不明なカテゴリ",
           answerCount: answers.length,
-          message: "AIレコメンド生成が完了しました",
+          message: "レコメンドの作成が完了しました",
           recommendations: validRecommendations.map((rec) => ({
             id: rec.id,
             rank: rec.rank,
@@ -265,7 +284,7 @@ ${products
         })
       );
     } catch (aiError) {
-      console.error("AI generation error:", aiError);
+      console.error("レコメンドの作成エラー:", aiError);
       // AI生成エラーの場合、フォールバック処理
       const fallbackRecommendations = products
         .slice(0, 3)
@@ -288,7 +307,7 @@ ${products
           sessionId: session.id,
           categoryName: category?.name || "不明なカテゴリ",
           answerCount: answers.length,
-          message: "レコメンド生成が完了しました（基本推奨）",
+          message: "レコメンドの作成が完了しました（基本推奨）",
           recommendations: savedFallbackRecs.map((rec) => ({
             id: rec.id,
             rank: rec.rank,
@@ -300,7 +319,7 @@ ${products
       );
     }
   } catch (error) {
-    console.error("Recommendation generation error:", error);
+    console.error("レコメンドの作成エラー:", error);
     return createErrorResponse(
       "AIレコメンド生成中にエラーが発生しました",
       500,
